@@ -40,7 +40,7 @@ A API fica em `http://localhost:3333` e a tela em `http://localhost:4200`.
 
 | Usuário | Senha | Perfil |
 | --- | --- | --- |
-| `admin` | `GpsTransporte1234$` | Administrador |
+| `admin` | `admin12345` | Administrador |
 | `joao` | `Motorista123` | Motorista |
 | `ana` | `Estudante123` | Estudante |
 
