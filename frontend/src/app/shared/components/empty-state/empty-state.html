@@ -1,0 +1,7 @@
+<div class="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+  <svg lucideSearchX [size]="28" class="mx-auto text-slate-400"></svg>
+  <p class="mt-3 font-medium text-slate-800">{{ titulo() }}</p>
+  @if (descricao()) {
+    <p class="mt-1 text-sm text-slate-500">{{ descricao() }}</p>
+  }
+</div>

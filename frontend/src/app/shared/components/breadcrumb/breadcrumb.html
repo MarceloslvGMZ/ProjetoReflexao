@@ -1,0 +1,11 @@
+<nav aria-label="Trilha de navegação">
+  <ol class="flex items-center gap-1.5 text-sm text-slate-500">
+    <li>
+      <a routerLink="/dashboard" class="hover:text-primaria-700">Início</a>
+    </li>
+    @if (titulo()) {
+      <li aria-hidden="true">/</li>
+      <li class="font-medium text-slate-800" aria-current="page">{{ titulo() }}</li>
+    }
+  </ol>
+</nav>

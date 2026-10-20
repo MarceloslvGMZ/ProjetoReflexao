@@ -1,0 +1,142 @@
+<aside class="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white md:flex">
+  <ng-container *ngTemplateOutlet="conteudo" />
+</aside>
+
+@if (layout.menuAberto()) {
+  <div class="fixed inset-0 z-40 md:hidden">
+    <button
+      type="button"
+      class="absolute inset-0 bg-slate-900/40"
+      aria-label="Fechar menu"
+      (click)="layout.fecharMenu()"
+    ></button>
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+      class="relative flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl"
+      appTrapFocus
+    >
+      <ng-container *ngTemplateOutlet="conteudo; context: { movel: true }" />
+    </aside>
+  </div>
+}
+
+<ng-template #conteudo let-movel="movel">
+  <div class="flex items-center justify-between gap-3 px-5 py-5">
+    <div class="flex items-center gap-3">
+      <span class="flex size-10 items-center justify-center rounded-xl bg-primaria-600 text-white">
+        <svg lucideBus [size]="20"></svg>
+      </span>
+      <div>
+        <p class="font-display text-lg leading-tight font-bold">ViaFácil</p>
+        <p class="text-xs text-slate-500">Gestão de transporte</p>
+      </div>
+    </div>
+    @if (movel) {
+      <button
+        type="button"
+        class="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
+        aria-label="Fechar menu"
+        (click)="layout.fecharMenu()"
+      >
+        <svg lucideX [size]="18"></svg>
+      </button>
+    }
+  </div>
+
+  <nav class="flex-1 space-y-1 overflow-y-auto px-3" aria-label="Principal">
+    @for (link of visiveis(); track link.caminho) {
+      <a
+        [routerLink]="link.caminho"
+        routerLinkActive="bg-primaria-50 text-primaria-700"
+        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        (click)="layout.fecharMenu()"
+      >
+        @switch (link.caminho) {
+          @case ('/dashboard') {
+            <svg lucideLayoutDashboard [size]="18"></svg>
+          }
+          @case ('/onibus') {
+            <svg lucideBus [size]="18"></svg>
+          }
+          @case ('/pessoas') {
+            <svg lucideUsers [size]="18"></svg>
+          }
+          @case ('/rotas') {
+            <svg lucideRoute [size]="18"></svg>
+          }
+          @case ('/ocorrencias') {
+            <svg lucideTriangleAlert [size]="18"></svg>
+          }
+          @case ('/usuarios') {
+            <svg lucideUserRound [size]="18"></svg>
+          }
+        }
+        <span class="flex-1">{{ link.rotulo }}</span>
+        @if (link.avisos && avisos() > 0) {
+          <span
+            class="rounded-full bg-alerta-50 px-2 py-0.5 text-xs font-semibold text-alerta-700"
+            [attr.aria-label]="avisos() + ' ocorrências nas últimas 24 horas'"
+          >
+            {{ avisos() }}
+          </span>
+        }
+      </a>
+    }
+  </nav>
+
+  <div class="space-y-3 p-3">
+    <button
+      type="button"
+      class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left hover:bg-slate-100"
+      (click)="suporteAberto.set(true)"
+    >
+      <span class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <svg lucideLifeBuoy [size]="16"></svg>
+        Central de suporte
+      </span>
+      <span class="mt-1 block text-xs text-slate-500">Fale com o administrador do sistema.</span>
+    </button>
+
+    <div class="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primaria-100 text-xs font-bold text-primaria-700"
+        aria-hidden="true"
+      >
+        {{ iniciais() }}
+      </span>
+      <span class="min-w-0">
+        <span class="block truncate text-sm font-semibold text-slate-800">{{ auth.usuario()?.usuario }}</span>
+        <span class="block text-xs text-slate-500">{{ perfil() }}</span>
+      </span>
+      <span class="ml-auto flex">
+        <button
+          type="button"
+          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+          aria-label="Alterar senha"
+          (click)="alterarSenha.emit()"
+        >
+          <svg lucideKeyRound [size]="16"></svg>
+        </button>
+        <button
+          type="button"
+          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+          aria-label="Sair"
+          (click)="sair()"
+        >
+          <svg lucideLogOut [size]="16"></svg>
+        </button>
+      </span>
+    </div>
+  </div>
+</ng-template>
+
+@if (suporteAberto()) {
+  <app-modal titulo="Central de suporte" (fechado)="suporteAberto.set(false)">
+    <p class="text-sm text-slate-600">
+      A central de suporte ainda não atende por este sistema. Procure o administrador da operação
+      para cadastros, senhas e dúvidas.
+    </p>
+  </app-modal>
+}

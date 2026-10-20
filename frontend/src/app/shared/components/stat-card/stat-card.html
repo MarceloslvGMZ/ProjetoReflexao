@@ -1,0 +1,13 @@
+<article [class]="card + ' p-4'">
+  <p class="text-sm text-slate-500">{{ rotulo() }}</p>
+  <p
+    class="mt-1 font-display text-2xl font-bold"
+    [class.text-alerta-700]="tom() === 'alerta'"
+    [class.text-slate-900]="tom() !== 'alerta'"
+  >
+    {{ valor() }}
+  </p>
+  @if (detalhe()) {
+    <p class="mt-1 text-xs text-slate-500">{{ detalhe() }}</p>
+  }
+</article>

@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primaria-50: var(--color-indigo-50);
+  --color-primaria-100: var(--color-indigo-100);
+  --color-primaria-200: var(--color-indigo-200);
+  --color-primaria-500: var(--color-indigo-500);
+  --color-primaria-600: var(--color-indigo-600);
+  --color-primaria-700: var(--color-indigo-700);
+
+  --color-sucesso-50: var(--color-emerald-50);
+  --color-sucesso-600: var(--color-emerald-600);
+  --color-sucesso-700: var(--color-emerald-700);
+
+  --color-alerta-50: var(--color-amber-50);
+  --color-alerta-600: var(--color-amber-600);
+  --color-alerta-700: var(--color-amber-700);
+
+  --color-erro-50: var(--color-red-50);
+  --color-erro-600: var(--color-red-600);
+  --color-erro-700: var(--color-red-700);
+
+  --color-info-50: var(--color-sky-50);
+  --color-info-600: var(--color-sky-600);
+  --color-info-700: var(--color-sky-700);
+}
+
+@layer base {
+  html {
+    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-slate-900;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primaria-500;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,127 @@
+<div class="space-y-5">
+  <app-page-header [titulo]="config().titulo" [descricao]="config().descricao">
+    @if (permissoes.hasValue() && permissoes.value().criar) {
+      <button type="button" [class]="btnPrimario" (click)="store.abrirCriacao()">
+        <svg lucidePlus [size]="16"></svg>
+        {{ config().rotuloNovo }}
+      </button>
+    }
+  </app-page-header>
+
+  @if (indicadores().length) {
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+      @for (indicador of indicadores(); track indicador.rotulo) {
+        <app-stat-card
+          [rotulo]="indicador.rotulo"
+          [valor]="indicador.valor"
+          [detalhe]="indicador.detalhe"
+          [tom]="indicador.tom ?? 'neutro'"
+        />
+      }
+    </section>
+  }
+
+  <div [class]="card + ' p-4'">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+      <div class="lg:w-72">
+        <app-search-input
+          [valor]="termo()"
+          [rotulo]="'Buscar em ' + config().titulo"
+          placeholder="Buscar nesta página"
+          (valorChange)="definirBusca($event)"
+        />
+      </div>
+      @for (filtro of config().filtros ?? []; track filtro.id) {
+        <label class="block lg:w-52">
+          <span class="mb-1 block text-xs font-medium text-slate-500">{{ filtro.rotulo }}</span>
+          <select
+            [class]="campo"
+            [value]="store.filtros()[filtro.id] ?? ''"
+            (change)="aoFiltro(filtro.id, $event)"
+          >
+            <option value="">Todos</option>
+            @for (opcao of opcoesDe(filtro); track opcao.valor) {
+              <option [value]="opcao.valor">{{ opcao.rotulo }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+  </div>
+
+  @if (registroId(); as id) {
+    <p class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+      Exibindo o registro {{ id }} encontrado na busca global.
+      <button type="button" class="font-medium text-primaria-700 underline" (click)="limparRegistro()">
+        Ver a lista inteira
+      </button>
+    </p>
+  }
+
+  @if (store.erro(); as erro) {
+    <div role="alert" class="rounded-xl border border-erro-600/20 bg-erro-50 p-4 text-sm text-erro-700">
+      <p>{{ erro }}</p>
+      <button type="button" class="mt-2 font-medium underline" (click)="store.carregar()">
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (store.carregando() && store.itens().length === 0) {
+    <div class="space-y-2" aria-busy="true">
+      <span class="sr-only" role="status">Carregando registros…</span>
+      @for (linha of [1, 2, 3, 4, 5]; track linha) {
+        <div class="h-14 animate-pulse rounded-xl bg-white motion-reduce:animate-none"></div>
+      }
+    </div>
+  } @else if (store.filtrados().length === 0) {
+    <app-empty-state
+      titulo="Nenhum registro encontrado"
+      descricao="Ajuste a busca ou os filtros, ou cadastre um novo registro."
+    />
+  } @else {
+    <div [class]="card">
+      <app-tabela-recurso
+        [itens]="store.filtrados()"
+        [colunas]="colunas()"
+        [texto]="texto"
+        [badge]="config().badge ? badgeDe : null"
+        [mostrarAcoes]="mostrarAcoes()"
+        [podeEditar]="podeEditar"
+        [podeExcluir]="podeExcluir"
+        (editar)="store.abrirEdicao($event)"
+        (excluir)="store.pedirExclusao($event)"
+      />
+    </div>
+  }
+
+  @if (erroPermissao(); as erro) {
+    <p role="alert" class="text-sm text-erro-700">{{ erro }}</p>
+  }
+</div>
+
+@if (store.modal() !== 'fechado') {
+  <app-modal
+    [titulo]="store.modal() === 'editar' ? 'Editar registro' : config().rotuloNovo"
+    (fechado)="store.fechar()"
+  >
+    <app-formulario-dinamico
+      [recurso]="config().recurso"
+      [acao]="store.modal() === 'editar' ? (config().acaoAtualizar ?? 'atualizar') : (config().acaoCriar ?? 'criar')"
+      [id]="store.modal() === 'editar' ? store.selecionado()?.id ?? null : null"
+      [valorInicial]="store.modal() === 'editar' ? store.selecionado() : null"
+      [somenteLeitura]="store.modal() === 'editar' ? config().somenteLeituraNaEdicao ?? [] : []"
+      [rotuloEnviar]="store.modal() === 'editar' ? 'Salvar' : config().rotuloNovo"
+      (salvo)="store.aposSalvar()"
+      (cancelado)="store.fechar()"
+    />
+  </app-modal>
+}
+
+@if (store.confirmando(); as item) {
+  <app-confirm-dialog
+    titulo="Excluir registro"
+    [mensagem]="'Excluir o registro ' + item.id + '? Esta ação não pode ser desfeita.'"
+    [carregando]="store.excluindo()"
+    (confirmado)="store.confirmarExclusao()"
+    (cancelado)="store.cancelarExclusao()"
+  />
+}

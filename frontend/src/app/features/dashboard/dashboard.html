@@ -1,0 +1,150 @@
+<div class="space-y-5">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-sm text-slate-500">{{ dataHoje }}</p>
+      <h1 class="text-2xl font-bold">Olá, {{ auth.usuario()?.usuario }}</h1>
+      <p class="mt-1 text-sm text-slate-500">Acompanhe a frota, as rotas e as ocorrências do dia.</p>
+    </div>
+    <button type="button" [class]="btnPrimario" (click)="novaOcorrencia.set(true)">
+      <svg lucidePlus [size]="16"></svg>
+      Nova ocorrência
+    </button>
+  </header>
+
+  @if (erro(); as mensagem) {
+    <div role="alert" class="rounded-xl border border-erro-600/20 bg-erro-50 p-4 text-sm text-erro-700">
+      <p>{{ mensagem }}</p>
+      <button type="button" class="mt-2 font-medium underline" (click)="dados.reload()">Tentar novamente</button>
+    </div>
+  } @else if (!painel()) {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true">
+      <span class="sr-only" role="status">Carregando visão geral…</span>
+      @for (card of [1, 2, 3, 4]; track card) {
+        <div class="h-24 animate-pulse rounded-xl bg-white motion-reduce:animate-none"></div>
+      }
+    </div>
+  } @else {
+    @let resumo = painel()!;
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+      <app-stat-card
+        rotulo="Frota em operação"
+        [valor]="resumo.frotaEmOperacao + ' de ' + resumo.frotaTotal"
+        detalhe="veículos em rotas ativas"
+      />
+      <app-stat-card
+        rotulo="Rotas ativas"
+        [valor]="'' + resumo.rotasAtivas"
+        [detalhe]="resumo.rotasProximas2h + ' saem nas próximas 2 horas'"
+      />
+      <app-stat-card
+        rotulo="Capacidade da frota"
+        [valor]="'' + resumo.capacidade"
+        detalhe="lugares somados"
+      />
+      <app-stat-card
+        rotulo="Ocorrências em 24 horas"
+        [valor]="'' + resumo.ocorrencias24h"
+        [tom]="resumo.ocorrencias24h > 0 ? 'alerta' : 'neutro'"
+        [detalhe]="resumo.ocorrencias24h > 0 ? 'Há registros recentes' : 'Nenhuma ocorrência recente'"
+      />
+    </section>
+
+    <section [class]="card + ' overflow-hidden'">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <h2 class="font-semibold">Monitoramento em tempo real</h2>
+        <button
+          type="button"
+          [class]="btnSecundario"
+          disabled
+          aria-disabled="true"
+          title="O mapa completo depende do rastreamento, que ainda não está disponível."
+        >
+          Ver mapa completo
+        </button>
+      </div>
+      <div class="relative">
+        <div class="pointer-events-none opacity-40" inert>
+          <app-mapa-operacional [disponivel]="false" [veiculos]="[]" />
+        </div>
+        <app-recurso-indisponivel
+          titulo="Indisponível no momento"
+          descricao="O acompanhamento de rotas em tempo real estará disponível em uma próxima versão."
+        />
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <section [class]="card">
+        <h2 class="border-b border-slate-100 px-4 py-3 font-semibold">Próximas saídas</h2>
+        @if (resumo.saidas.length === 0) {
+          <p class="px-4 py-6 text-sm text-slate-500">
+            Nenhuma rota ativa no momento.
+          </p>
+        } @else {
+          <ul class="divide-y divide-slate-100">
+            @for (saida of resumo.saidas; track saida.rotaId) {
+              <li class="flex items-center gap-3 px-4 py-3">
+                <div class="w-16 shrink-0">
+                  <p class="font-display text-lg font-bold">{{ saida.horario }}</p>
+                  <p class="text-xs text-slate-500">{{ textoRestante(saida.minutos) }}</p>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium">{{ saida.rota }}</p>
+                  <p class="text-xs text-slate-500">{{ saida.trecho }}</p>
+                </div>
+                <app-status-badge [texto]="saida.status" [tom]="tomDaSaida(saida)" />
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section [class]="card">
+        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 class="font-semibold">Veículos em operação</h2>
+          <a routerLink="/onibus" class="text-sm font-medium text-primaria-700 hover:underline">Ver todos</a>
+        </div>
+        @if (resumo.veiculos.length === 0) {
+          <p class="px-4 py-6 text-sm text-slate-500">
+            Nenhum veículo em rota ativa.
+          </p>
+        } @else {
+          <ul class="divide-y divide-slate-100">
+            @for (veiculo of resumo.veiculos; track veiculo.onibusId + veiculo.rota) {
+              <li class="grid grid-cols-2 gap-2 px-4 py-3 text-sm sm:grid-cols-4">
+                <span>
+                  <span class="block text-xs text-slate-500">Veículo</span>
+                  {{ veiculo.nome }}
+                </span>
+                <span>
+                  <span class="block text-xs text-slate-500">Placa</span>
+                  {{ veiculo.placa }}
+                </span>
+                <span>
+                  <span class="block text-xs text-slate-500">Rota</span>
+                  {{ veiculo.rota }}
+                </span>
+                <span>
+                  <span class="block text-xs text-slate-500">Motorista</span>
+                  {{ veiculo.motorista }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+  }
+</div>
+
+@if (novaOcorrencia()) {
+  <app-modal titulo="Nova ocorrência" (fechado)="novaOcorrencia.set(false)">
+    <app-formulario-dinamico
+      recurso="ocorrencias"
+      acao="criar"
+      rotuloEnviar="Registrar"
+      (salvo)="ocorrenciaSalva()"
+      (cancelado)="novaOcorrencia.set(false)"
+    />
+  </app-modal>
+}

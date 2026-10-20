@@ -1,0 +1,9 @@
+node_modules/
+.turbo/
+dist/
+.angular/
+coverage/
+.env
+*.log
+.DS_Store
+Thumbs.db

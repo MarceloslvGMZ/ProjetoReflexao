@@ -1,0 +1,27 @@
+<main class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+  <section class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <div class="mb-6 flex items-center gap-3">
+      <span class="flex size-11 items-center justify-center rounded-xl bg-primaria-600 text-white">
+        <svg lucideBus [size]="22"></svg>
+      </span>
+      <div>
+        <p class="font-display text-xl font-bold">ViaFácil</p>
+        <p class="text-sm text-slate-500">Gestão de transporte</p>
+      </div>
+    </div>
+    <h1 class="text-lg font-semibold text-slate-900">Entrar</h1>
+    <p class="mt-1 mb-5 text-sm text-slate-500">
+      Use seu usuário e senha. O acesso não é feito por e-mail.
+    </p>
+    @if (erro()) {
+      <p role="alert" class="mb-4 rounded-lg bg-erro-50 px-3 py-2 text-sm text-erro-700">{{ erro() }}</p>
+    }
+    <app-formulario-dinamico
+      recurso="auth"
+      acao="entrar"
+      rotuloEnviar="Entrar"
+      [exibirCancelar]="false"
+      (salvo)="entrar($event)"
+    />
+  </section>
+</main>

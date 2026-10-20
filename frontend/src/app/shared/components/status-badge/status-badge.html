@@ -1,0 +1,20 @@
+<span [class]="classe()">
+  @switch (tom()) {
+    @case ('sucesso') {
+      <svg lucideCircleCheck [size]="12"></svg>
+    }
+    @case ('alerta') {
+      <svg lucideClock [size]="12"></svg>
+    }
+    @case ('erro') {
+      <svg lucideCircleAlert [size]="12"></svg>
+    }
+    @case ('info') {
+      <svg lucideInfo [size]="12"></svg>
+    }
+    @default {
+      <svg lucideCircleMinus [size]="12"></svg>
+    }
+  }
+  {{ texto() }}
+</span>

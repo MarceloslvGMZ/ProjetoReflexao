@@ -1,0 +1,21 @@
+<div class="min-h-screen bg-slate-50">
+  <app-sidebar [avisos]="recentes().length" (alterarSenha)="abrirSenha()" />
+  <div class="md:pl-72">
+    <app-topbar [recentes]="recentes()" />
+    <main class="p-4 sm:p-6 lg:p-8">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+@if (trocandoSenha()) {
+  <app-modal titulo="Alterar senha" (fechado)="trocandoSenha.set(false)">
+    <app-formulario-dinamico
+      recurso="auth"
+      acao="trocarSenha"
+      rotuloEnviar="Alterar senha"
+      (salvo)="senhaAlterada()"
+      (cancelado)="trocandoSenha.set(false)"
+    />
+  </app-modal>
+}

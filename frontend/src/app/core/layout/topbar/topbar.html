@@ -1,0 +1,97 @@
+<header class="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+  <button
+    type="button"
+    class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
+    aria-label="Abrir menu"
+    [attr.aria-expanded]="layout.menuAberto()"
+    (click)="layout.alternarMenu()"
+  >
+    <svg lucideMenu [size]="20"></svg>
+  </button>
+
+  <app-breadcrumb [titulo]="titulo()" />
+
+  <div class="relative ml-auto w-full max-w-xs sm:w-64 lg:w-80">
+    <app-search-input
+      [valor]="consulta.termo()"
+      rotulo="Busca global"
+      placeholder="Buscar em todo o sistema"
+      (valorChange)="aoBuscar($event)"
+    />
+    @if (buscaAberta()) {
+      <div
+        class="absolute right-0 z-30 mt-2 w-full min-w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+        role="listbox"
+        aria-label="Resultados da busca"
+      >
+        @if (consulta.carregando() && consulta.resultados().length === 0) {
+          <p class="px-2 py-3 text-sm text-slate-500">Buscando…</p>
+        } @else if (consulta.resultados().length === 0) {
+          <p class="px-2 py-3 text-sm text-slate-500">Nenhum registro encontrado.</p>
+        } @else {
+          <ul class="max-h-80 space-y-1 overflow-y-auto">
+            @for (resultado of consulta.resultados(); track resultado.caminho + resultado.id) {
+              <li>
+                <button
+                  type="button"
+                  class="block w-full rounded-lg px-2 py-2 text-left hover:bg-slate-50"
+                  (click)="abrirResultado(resultado)"
+                >
+                  <span class="block text-xs font-medium text-primaria-700">{{ resultado.recurso }}</span>
+                  <span class="block text-sm font-medium text-slate-800">{{ resultado.titulo }}</span>
+                  <span class="block truncate text-xs text-slate-500">{{ resultado.detalhe }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="relative">
+    <button
+      type="button"
+      class="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+      aria-label="Notificações"
+      [attr.aria-expanded]="avisosAbertos()"
+      (click)="alternarAvisos()"
+    >
+      <svg lucideBell [size]="20"></svg>
+      @if (recentes().length) {
+        <span
+          class="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-alerta-600 text-[10px] font-bold text-white"
+        >
+          {{ recentes().length }}
+        </span>
+      }
+    </button>
+    @if (avisosAbertos()) {
+      <div
+        class="absolute right-0 z-30 mt-2 w-80 max-w-[80vw] rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+        role="region"
+        aria-label="Ocorrências das últimas 24 horas"
+      >
+        @if (recentes().length === 0) {
+          <p class="px-2 py-3 text-sm text-slate-500">Nenhuma ocorrência nas últimas 24 horas.</p>
+        } @else {
+          <ul class="max-h-80 space-y-1 overflow-y-auto">
+            @for (ocorrencia of recentes(); track ocorrencia.id) {
+              <li>
+                <a
+                  routerLink="/ocorrencias"
+                  class="block rounded-lg px-2 py-2 hover:bg-slate-50"
+                  (click)="fecharAvisos()"
+                >
+                  <span class="block text-sm font-medium text-slate-800">{{ ocorrencia.titulo }}</span>
+                  <span class="block text-xs text-slate-500">{{ formatarDataHora(ocorrencia.dataHora) }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+
+</header>

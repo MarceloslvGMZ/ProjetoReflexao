@@ -1,0 +1,14 @@
+<div
+  class="absolute inset-0 flex items-center justify-center p-4"
+  role="status"
+>
+  <div class="max-w-sm rounded-xl border border-slate-200 bg-white/95 p-4 text-center shadow-md">
+    <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-alerta-700">
+      <svg lucideClock [size]="16"></svg>
+      {{ titulo() }}
+    </p>
+    @if (descricao()) {
+      <p class="mt-1 text-sm text-slate-600">{{ descricao() }}</p>
+    }
+  </div>
+</div>

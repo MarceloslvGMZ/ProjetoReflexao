@@ -1,0 +1,30 @@
+<div class="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4">
+  <button
+    type="button"
+    class="absolute inset-0 bg-slate-900/40"
+    aria-label="Fechar"
+    (click)="fechar()"
+  ></button>
+  <div
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    appTrapFocus
+    [attr.aria-labelledby]="idTitulo"
+    class="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl focus:outline-none"
+    (keydown.escape)="$event.stopPropagation(); fechar()"
+  >
+    <header class="mb-4 flex items-start justify-between gap-3">
+      <h2 [id]="idTitulo" class="text-lg font-bold">{{ titulo() }}</h2>
+      <button
+        type="button"
+        class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Fechar"
+        (click)="fechar()"
+      >
+        <svg lucideX [size]="18"></svg>
+      </button>
+    </header>
+    <ng-content />
+  </div>
+</div>

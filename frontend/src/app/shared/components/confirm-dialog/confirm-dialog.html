@@ -1,0 +1,11 @@
+<app-modal [titulo]="titulo()" (fechado)="cancelado.emit()">
+  <p class="text-sm text-slate-600">{{ mensagem() }}</p>
+  <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <button type="button" [class]="btnSecundario" [disabled]="carregando()" (click)="cancelado.emit()">
+      Cancelar
+    </button>
+    <button type="button" [class]="btnPerigo" [disabled]="carregando()" (click)="confirmado.emit()">
+      {{ carregando() ? 'Excluindo…' : rotuloConfirmar() }}
+    </button>
+  </div>
+</app-modal>

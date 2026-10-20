@@ -1,0 +1,22 @@
+<svg
+  viewBox="0 0 640 280"
+  class="h-64 w-full bg-slate-100"
+  role="img"
+  [attr.aria-label]="
+    disponivel()
+      ? veiculos().length + ' veículos em rota'
+      : 'Mapa ilustrativo, sem rastreamento em tempo real'
+  "
+>
+  <path d="M0 70 H640 M0 150 H640 M0 220 H640 M80 0 V280 M220 0 V280 M400 0 V280 M540 0 V280" stroke="#cbd5e1" stroke-width="10" />
+  <path d="M40 250 C160 40 300 240 600 50" fill="none" stroke="#818cf8" stroke-width="4" stroke-dasharray="8 8" />
+  <path d="M20 40 C180 200 420 20 620 200" fill="none" stroke="#6366f1" stroke-width="4" />
+  @if (disponivel()) {
+    @for (veiculo of veiculos(); track veiculo.id) {
+      <circle [attr.cx]="veiculo.x" [attr.cy]="veiculo.y" r="8" fill="#4f46e5" />
+      <text [attr.x]="veiculo.x + 12" [attr.y]="veiculo.y + 4" font-size="12" fill="#1e1b4b">
+        {{ veiculo.rotulo }}
+      </text>
+    }
+  }
+</svg>
