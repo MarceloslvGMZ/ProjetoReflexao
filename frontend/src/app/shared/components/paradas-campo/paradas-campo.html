@@ -1,0 +1,58 @@
+<ol class="space-y-2" aria-label="Paradas na ordem do percurso">
+  @for (parada of paradas(); track $index) {
+    <li class="flex items-center gap-2">
+      <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sinal text-xs font-bold text-tinta">{{ $index + 1 }}</span>
+      <input
+        [class]="campo"
+        [value]="parada.nome"
+        [attr.aria-label]="'Nome da parada ' + ($index + 1)"
+        (change)="renomear($index, $event)"
+      />
+      <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === 0" (click)="mover($index, -1)">Subir</button>
+      <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === paradas().length - 1" (click)="mover($index, 1)">Descer</button>
+      <button type="button" class="text-xs font-medium text-erro-700 hover:underline" (click)="remover($index)">Remover</button>
+    </li>
+  } @empty {
+    <li class="text-sm text-slate-500">Nenhuma parada. A rota segue direto da origem ao destino.</li>
+  }
+</ol>
+
+<div class="flex gap-2">
+  <input
+    type="search"
+    [id]="idCampo()"
+    [class]="campo"
+    [value]="consulta()"
+    placeholder="Ex.: UEG Anápolis"
+    [attr.aria-label]="'Local da parada'"
+    (input)="consulta.set($any($event.target).value)"
+    (keydown.enter)="$event.preventDefault(); localizar()"
+  />
+  <button type="button" [class]="botao" [disabled]="buscando()" (click)="localizar()">
+    {{ buscando() ? 'Buscando…' : 'Localizar' }}
+  </button>
+</div>
+
+@if (sugestoes().length) {
+  <ul class="overflow-hidden rounded-xl border border-stone-200" aria-label="Locais encontrados">
+    @for (lugar of sugestoes(); track lugar.latitude + lugar.longitude) {
+      <li class="border-b border-stone-100 last:border-b-0">
+        <button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-primaria-50" (click)="adicionar(lugar)">
+          {{ lugar.nome }}
+        </button>
+      </li>
+    }
+  </ul>
+}
+
+<div #superficie class="h-56 overflow-hidden rounded-xl border border-stone-200" role="application" aria-label="Mapa para marcar paradas"></div>
+<p class="text-xs text-slate-500">
+  @if (marcando()) {
+    Marcando o ponto…
+  } @else {
+    Escolha um local da busca ou clique no mapa para marcar a próxima parada.
+  }
+</p>
+@if (aviso(); as mensagem) {
+  <p class="text-sm text-erro-700" role="alert">{{ mensagem }}</p>
+}

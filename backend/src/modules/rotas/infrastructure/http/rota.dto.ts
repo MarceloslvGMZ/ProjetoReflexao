@@ -1,4 +1,5 @@
 import { Campo } from '../../../../shared/infrastructure/http/formulario/campo.decorator.js';
+import type { Parada } from '../../domain/parada.js';
 import { TURNOS, type Turno } from '../../domain/rota.js';
 
 export class RotaDto {
@@ -10,6 +11,14 @@ export class RotaDto {
 
   @Campo({ rotulo: 'Destino' })
   destino: string;
+
+  @Campo({
+    rotulo: 'Paradas',
+    opcional: true,
+    tipo: 'paradas',
+    ajuda: 'Marque os locais do percurso, na ordem. A rota passa por eles em vez de ir pelo caminho mais curto.',
+  })
+  paradas?: Parada[];
 
   @Campo({ rotulo: 'Saída da ida', exemplo: '06:30' })
   horarioSaidaIda: string;

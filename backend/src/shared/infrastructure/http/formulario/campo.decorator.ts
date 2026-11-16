@@ -1,5 +1,7 @@
 import 'reflect-metadata';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsIn,
   IsInt,
@@ -16,7 +18,8 @@ export type TipoCampo =
   | 'booleano'
   | 'selecao'
   | 'data-hora'
-  | 'referencia';
+  | 'referencia'
+  | 'paradas';
 
 export interface OpcoesCampo {
   rotulo: string;
@@ -27,7 +30,7 @@ export interface OpcoesCampo {
   /** Id de outro recurso; o front-end carrega as opções de `GET /{recurso}`. */
   referencia?: { recurso: string; exibir: string };
   /** Força um tipo quando o tipo do TypeScript não basta (ex.: `senha`, `data-hora`). */
-  tipo?: Extract<TipoCampo, 'senha' | 'data-hora'>;
+  tipo?: Extract<TipoCampo, 'senha' | 'data-hora' | 'paradas'>;
   /** Torna o campo obrigatório quando outro campo tiver o valor informado. */
   obrigatorioSe?: { campo: string; igual: string };
   exemplo?: string;
@@ -102,6 +105,9 @@ function validadoresDo(campo: DescricaoCampo): PropertyDecorator[] {
       break;
     case 'data-hora':
       validadores.push(IsISO8601());
+      break;
+    case 'paradas':
+      validadores.push(IsArray(), ArrayMaxSize(20));
       break;
   }
   return validadores;

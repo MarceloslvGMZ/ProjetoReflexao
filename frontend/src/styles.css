@@ -51,6 +51,12 @@
     @apply outline-2 outline-offset-2 outline-primaria-500;
   }
 
+  .transicao-suave {
+    transition-property: width, grid-template-rows, top, left, transform, opacity;
+    transition-duration: 200ms;
+    transition-timing-function: ease-out;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -59,6 +65,12 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+
+    .transicao-suave {
+      transition-property: width, grid-template-rows, top, left, transform, opacity !important;
+      transition-duration: 200ms !important;
+      transition-timing-function: ease-out !important;
     }
   }
 }

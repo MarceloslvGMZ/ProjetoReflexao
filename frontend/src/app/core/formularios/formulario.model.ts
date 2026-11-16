@@ -8,7 +8,8 @@ export type TipoCampo =
   | 'booleano'
   | 'selecao'
   | 'data-hora'
-  | 'referencia';
+  | 'referencia'
+  | 'paradas';
 
 export interface ReferenciaCampo {
   /** Recurso listado em `GET /{recurso}` para montar as opções. */

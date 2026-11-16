@@ -24,6 +24,16 @@ describe('Rota', () => {
     expect(Rota.criar({ ...dados, ativo: false }).ativo).toBe(false);
   });
 
+  it('guarda as paradas na ordem e começa sem nenhuma', () => {
+    expect(Rota.criar(dados).paradas).toEqual([]);
+    expect(
+      Rota.criar({
+        ...dados,
+        paradas: [{ nome: ' UEG ', latitude: -16.3, longitude: -48.9 }],
+      }).paradas,
+    ).toEqual([{ nome: 'UEG', latitude: -16.3, longitude: -48.9 }]);
+  });
+
   it.each([
     ['nome vazio', { nome: ' ' }],
     ['origem igual ao destino', { destino: ' centro ' }],

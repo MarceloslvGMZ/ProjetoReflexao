@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OnibusModule } from '../onibus/onibus.module.js';
 import { PessoasModule } from '../pessoas/pessoas.module.js';
 import { RotaRepository } from './domain/rota.repository.js';
+import { ConsultarTrajetoService } from './infrastructure/http/consultar-trajeto.service.js';
 import { RotasController } from './infrastructure/http/rotas.controller.js';
 import { RotaOrmEntity } from './infrastructure/persistence/rota.orm-entity.js';
 import { TypeOrmRotaRepository } from './infrastructure/persistence/typeorm-rota.repository.js';
@@ -22,6 +23,7 @@ import { RemoverRotaUseCase } from './use-cases/remover-rota.use-case.js';
     BuscarRotaUseCase,
     AtualizarRotaUseCase,
     RemoverRotaUseCase,
+    ConsultarTrajetoService,
     { provide: RotaRepository, useClass: TypeOrmRotaRepository },
   ],
   exports: [RotaRepository],

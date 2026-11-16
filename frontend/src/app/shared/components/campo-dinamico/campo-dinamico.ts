@@ -6,6 +6,7 @@ import type { DescricaoCampo } from '../../../core/formularios/formulario.model'
 import { ReferenciasService } from '../../../core/formularios/referencias.service';
 import { rotuloOpcao } from '../../../core/formularios/rotulos';
 import { AdornoCampo } from '../adorno-campo/adorno-campo';
+import { ParadasCampo } from '../paradas-campo/paradas-campo';
 
 const CLASSE_BASE =
   'box-border block h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-xs transition ' +
@@ -16,7 +17,7 @@ const CLASSE_INVALIDA = 'border-erro-600 focus:border-erro-600 focus:ring-erro-5
 
 @Component({
   selector: 'app-campo-dinamico',
-  imports: [ReactiveFormsModule, LucideCircleAlert, LucideEye, LucideEyeOff, AdornoCampo],
+  imports: [ReactiveFormsModule, LucideCircleAlert, LucideEye, LucideEyeOff, AdornoCampo, ParadasCampo],
   templateUrl: './campo-dinamico.html',
   host: { class: 'block' },
 })

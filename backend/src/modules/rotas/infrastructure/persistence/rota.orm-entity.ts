@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { OnibusOrmEntity } from '../../../onibus/infrastructure/persistence/onibus.orm-entity.js';
 import { PessoaOrmEntity } from '../../../pessoas/infrastructure/persistence/pessoa.orm-entity.js';
+import type { Parada } from '../../domain/parada.js';
 import { TURNOS, type Turno } from '../../domain/rota.js';
 
 @Entity('rota')
@@ -16,6 +17,9 @@ export class RotaOrmEntity {
 
   @Column()
   destino: string;
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  paradas: Parada[];
 
   @Column({ length: 5 })
   horarioSaidaIda: string;

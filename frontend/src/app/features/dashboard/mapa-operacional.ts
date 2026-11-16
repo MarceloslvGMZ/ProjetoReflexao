@@ -2,6 +2,7 @@ import { afterNextRender, Component, effect, ElementRef, input, OnDestroy, viewC
 import * as L from 'leaflet';
 import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
 import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
+import type { TrajetoRota } from './tracado-rota';
 
 @Component({
   selector: 'app-mapa-operacional',
@@ -10,20 +11,26 @@ import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
 })
 export class MapaOperacional implements OnDestroy {
   readonly veiculos = input<readonly VeiculoMapa[]>([]);
+  readonly trajetos = input<readonly TrajetoRota[]>([]);
+  /** A tela cheia abre o mapa mesmo antes de chegar a primeira posição. */
+  readonly iniciarVazio = input(false);
 
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
   private mapa: L.Map | null = null;
   private readonly camada = L.layerGroup();
+  private readonly camadaRota = L.layerGroup();
   private observador: ResizeObserver | null = null;
   /** Já existe um enquadramento persistido; novas posições não movem a câmera. */
   private enquadrou = false;
   private assinatura = '';
+  private assinaturaRota = '';
 
   constructor() {
     afterNextRender(() => this.desenhar());
 
     effect(() => {
       this.veiculos();
+      this.trajetos();
       this.desenhar();
     });
   }
@@ -36,7 +43,11 @@ export class MapaOperacional implements OnDestroy {
   private desenhar(): void {
     const mapa = this.garantirMapa();
     if (!mapa) return;
+    this.desenharVeiculos(mapa);
+    this.desenharRotas(mapa);
+  }
 
+  private desenharVeiculos(mapa: L.Map): void {
     const veiculos = this.veiculos();
     const assinatura = veiculos
       .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.desatualizada}:${veiculo.atualizadoEm}`)
@@ -59,7 +70,7 @@ export class MapaOperacional implements OnDestroy {
       marcador.addTo(this.camada);
     }
 
-    if (veiculos.length === 0 || this.enquadrou) return;
+    if (this.trajetos().length > 0 || veiculos.length === 0 || this.enquadrou) return;
     mapa.fitBounds(L.latLngBounds(veiculos.map((veiculo) => [veiculo.latitude, veiculo.longitude])), {
       padding: [32, 32],
       maxZoom: 16,
@@ -68,11 +79,45 @@ export class MapaOperacional implements OnDestroy {
     this.lembrar(mapa);
   }
 
+  private desenharRotas(mapa: L.Map): void {
+    const trajetos = this.trajetos();
+    const assinatura = trajetos
+      .map((trajeto) => `${trajeto.rotaId}:${trajeto.linha.length}:${trajeto.paradas.length}:${trajeto.duracaoSegundos}`)
+      .join('|');
+    if (assinatura === this.assinaturaRota) return;
+    this.assinaturaRota = assinatura;
+
+    this.camadaRota.clearLayers();
+    const coordenadas: L.LatLngExpression[] = [];
+    for (const trajeto of trajetos) {
+      const linha = trajeto.linha.map((ponto) => [ponto.latitude, ponto.longitude] as L.LatLngExpression);
+      L.polyline(linha, { color: '#14624c', weight: 5, opacity: 0.9 }).addTo(this.camadaRota);
+      coordenadas.push(...linha);
+      const pontos = [trajeto.origem, ...trajeto.paradas, trajeto.destino];
+      pontos.forEach((parada, indice) => {
+        const marcador = L.marker([parada.latitude, parada.longitude], {
+          icon: L.divIcon({
+            className: '',
+            html: `<span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:9999px;background:#e7a11a;color:#102033;border:2px solid #102033;font-size:11px;font-weight:700">${indice + 1}</span>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          }),
+        });
+        marcador.bindTooltip(`${indice + 1}. ${parada.nome}`, { direction: 'top' });
+        marcador.addTo(this.camadaRota);
+        coordenadas.push([parada.latitude, parada.longitude]);
+      });
+    }
+    if (coordenadas.length === 0) return;
+    mapa.fitBounds(L.latLngBounds(coordenadas), { padding: [48, 48], maxZoom: 15 });
+    this.enquadrou = true;
+  }
+
   /** Sem vista salva e sem veículos, o mapa ainda não é criado. */
   private garantirMapa(): L.Map | null {
     if (this.mapa) return this.mapa;
     const vista = lerVistaMapa();
-    if (!vista && this.veiculos().length === 0) return null;
+    if (!vista && this.veiculos().length === 0 && this.trajetos().length === 0 && !this.iniciarVazio()) return null;
 
     const elemento = this.superficie().nativeElement;
     const mapa = L.map(elemento, {
@@ -86,6 +131,7 @@ export class MapaOperacional implements OnDestroy {
       maxZoom: 19,
       noWrap: true,
     }).addTo(mapa);
+    this.camadaRota.addTo(mapa);
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));
     this.observador = new ResizeObserver(() => mapa.invalidateSize());
@@ -94,6 +140,8 @@ export class MapaOperacional implements OnDestroy {
     if (vista) {
       mapa.setView([vista.latitude, vista.longitude], vista.zoom);
       this.enquadrou = true;
+    } else if (this.veiculos().length === 0) {
+      mapa.setView([-16.328, -48.953], 12);
     }
     this.mapa = mapa;
     requestAnimationFrame(() => mapa.invalidateSize());

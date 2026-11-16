@@ -1,4 +1,5 @@
 import { DomainError } from '../../../shared/domain/errors.js';
+import { normalizarParadas, type Parada } from './parada.js';
 
 export const TURNOS = ['MANHA', 'TARDE', 'NOITE'] as const;
 export type Turno = (typeof TURNOS)[number];
@@ -7,6 +8,7 @@ export interface DadosRota {
   nome: string;
   origem: string;
   destino: string;
+  paradas?: unknown;
   horarioSaidaIda: string;
   horarioSaidaVolta: string;
   turno: Turno;
@@ -23,6 +25,7 @@ export class Rota {
     public nome: string,
     public origem: string,
     public destino: string,
+    public paradas: Parada[],
     public horarioSaidaIda: string,
     public horarioSaidaVolta: string,
     public turno: Turno,
@@ -38,6 +41,7 @@ export class Rota {
       v.nome,
       v.origem,
       v.destino,
+      v.paradas,
       v.horarioSaidaIda,
       v.horarioSaidaVolta,
       v.turno,
@@ -53,6 +57,7 @@ export class Rota {
       dados.nome,
       dados.origem,
       dados.destino,
+      normalizarParadas(dados.paradas),
       dados.horarioSaidaIda,
       dados.horarioSaidaVolta,
       dados.turno,
@@ -67,6 +72,7 @@ export class Rota {
     this.nome = v.nome;
     this.origem = v.origem;
     this.destino = v.destino;
+    this.paradas = v.paradas;
     this.horarioSaidaIda = v.horarioSaidaIda;
     this.horarioSaidaVolta = v.horarioSaidaVolta;
     this.turno = v.turno;
@@ -103,6 +109,7 @@ export class Rota {
       nome,
       origem,
       destino,
+      paradas: normalizarParadas(dados.paradas),
       horarioSaidaIda,
       horarioSaidaVolta,
       turno: dados.turno,

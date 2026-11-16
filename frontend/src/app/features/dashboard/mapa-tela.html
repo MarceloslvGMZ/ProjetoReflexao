@@ -1,0 +1,113 @@
+<section class="flex h-[calc(100dvh-7rem)] min-h-[24rem] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-papel-cartao md:flex-row">
+  <div
+    class="transicao-suave grid w-full shrink-0 grid-rows-[1fr] overflow-hidden border-stone-200 md:h-full md:grid-rows-[1fr]"
+    [class.grid-rows-[0fr]]="!menuAberto()"
+    [class.md:w-80]="menuAberto()"
+    [class.md:w-0]="!menuAberto()"
+    [class.border-b]="menuAberto()"
+    [class.md:border-r]="menuAberto()"
+    [attr.inert]="menuAberto() ? null : ''"
+  >
+  <div class="min-h-0 overflow-hidden">
+  <aside class="flex max-h-72 min-h-0 w-full flex-col gap-3 p-4 md:h-full md:max-h-none md:w-80">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h1 class="font-display text-xl font-extrabold tracking-tight text-tinta">Mapa da frota</h1>
+        <p class="text-xs text-slate-500">Busque um ônibus para ver a rota e o tempo estimado.</p>
+      </div>
+      <a routerLink="/dashboard" [class]="btnSecundario">Voltar</a>
+    </div>
+
+    <app-search-input
+      [valor]="termo()"
+      rotulo="Buscar ônibus"
+      [exibirRotulo]="true"
+      placeholder="Placa, modelo ou rota"
+      (valorChange)="termo.set($event)"
+    />
+
+    <ul class="min-h-0 flex-1 space-y-1 overflow-y-auto" aria-label="Ônibus">
+      @for (veiculo of filtrados(); track veiculo.id) {
+        <li>
+          <button
+            type="button"
+            class="w-full rounded-xl px-3 py-2 text-left hover:bg-stone-50"
+            [class.bg-primaria-50]="escolhido() === veiculo.id"
+            [attr.aria-pressed]="escolhido() === veiculo.id"
+            (click)="escolher(veiculo.id)"
+          >
+            <span class="block text-sm font-semibold text-slate-800">{{ veiculo.placa }}</span>
+            <span class="block truncate text-xs text-slate-500">
+              {{ veiculo.modelo }}
+              @if (veiculo.rotas.length === 0) {
+                · sem rota ativa
+              } @else {
+                · {{ nomesDasRotas(veiculo) }}
+              }
+            </span>
+          </button>
+        </li>
+      } @empty {
+        <li class="px-1 text-sm text-slate-500">Nenhum ônibus encontrado.</li>
+      }
+    </ul>
+
+    @if (carregandoTrajeto()) {
+      <p class="text-sm text-slate-500" role="status">Calculando o caminho…</p>
+    } @else if (erroTrajeto(); as mensagem) {
+      <p class="text-sm text-erro-700" role="alert">{{ mensagem }}</p>
+    } @else if (trajetos().length) {
+      <ul class="space-y-2" aria-label="Estimativas">
+        @for (trajeto of trajetos(); track trajeto.rotaId) {
+          <li class="rounded-xl bg-primaria-50 px-3 py-2 text-sm">
+            <span class="block font-semibold text-primaria-700">{{ trajeto.nome }}</span>
+            <span class="block text-slate-600">{{ caminho(trajeto) }}</span>
+            <span class="block text-slate-800">{{ descrever(trajeto) }}</span>
+          </li>
+        }
+      </ul>
+      <p class="text-xs text-slate-500">Os números seguem a ordem cadastrada: origem, paradas e destino. O tempo estima o percurso.</p>
+    }
+  </aside>
+  </div>
+  </div>
+
+  <div class="relative z-[1100] h-0 w-full shrink-0 md:h-auto md:w-0 md:self-stretch">
+    <button
+      type="button"
+      class="transicao-suave absolute flex size-9 items-center justify-center rounded-full border border-stone-300 bg-papel-cartao text-tinta shadow-md hover:bg-stone-50"
+      [class]="menuAberto() ? 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-1/2 md:left-0' : 'top-4 left-1/2 -translate-x-1/2 md:top-1/2 md:left-3 md:translate-x-0 md:-translate-y-1/2'"
+      [attr.aria-expanded]="menuAberto()"
+      [attr.aria-label]="menuAberto() ? 'Recolher a lista de ônibus' : 'Mostrar a lista de ônibus'"
+      (click)="alternarMenu()"
+    >
+      <svg
+        viewBox="0 0 20 20"
+        class="transicao-suave size-4"
+        [class]="menuAberto() ? '-rotate-90 md:rotate-0' : 'rotate-90 md:rotate-180'"
+        aria-hidden="true"
+      >
+        <path d="M12 4 L6 10 L12 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="relative flex min-h-0 min-w-0 flex-1 flex-col">
+    <a
+      routerLink="/dashboard"
+      class="transicao-suave absolute top-3 right-3 z-[1100]"
+      [class]="btnSecundario"
+      [class.pointer-events-none]="menuAberto()"
+      [class.opacity-0]="menuAberto()"
+      [attr.aria-hidden]="menuAberto()"
+    >Voltar</a>
+    <div class="min-h-0 flex-1">
+      <app-mapa-operacional [veiculos]="veiculos()" [trajetos]="trajetos()" [iniciarVazio]="true" />
+    </div>
+    @if (erro(); as mensagem) {
+      <p class="px-4 py-2 text-sm text-erro-700" role="alert">{{ mensagem }}</p>
+    } @else if (consultado() && veiculos().length === 0) {
+      <p class="px-4 py-2 text-sm text-slate-500">Nenhum ônibus está compartilhando a localização.</p>
+    }
+  </div>
+</section>

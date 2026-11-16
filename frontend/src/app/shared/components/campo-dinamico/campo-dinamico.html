@@ -129,6 +129,10 @@
       />
     }
 
+    @case ('paradas') {
+      <app-paradas-campo [controle]="controle()" [idCampo]="id()" />
+    }
+
     @default {
       <input
         type="text"

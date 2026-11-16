@@ -105,6 +105,8 @@ function valorInicial(campo: DescricaoCampo): unknown {
     case 'texto':
     case 'senha':
       return '';
+    case 'paradas':
+      return [];
     case 'booleano':
       // Omitir um booleano opcional faz o backend aplicar o padrão, que nos DTOs atuais é "ativo".
       return !campo.obrigatorio;
@@ -114,6 +116,7 @@ function valorInicial(campo: DescricaoCampo): unknown {
 }
 
 function paraValorDoFormulario(campo: DescricaoCampo, valor: unknown): unknown {
+  if (campo.tipo === 'paradas') return Array.isArray(valor) ? valor : [];
   if (valor === null || valor === undefined) return valorInicial(campo);
   if (campo.tipo === 'data-hora') return paraDataHoraLocal(String(valor));
   if (campo.tipo === 'senha') return '';
@@ -121,6 +124,7 @@ function paraValorDoFormulario(campo: DescricaoCampo, valor: unknown): unknown {
 }
 
 function paraValorDaApi(campo: DescricaoCampo, valor: unknown): unknown {
+  if (campo.tipo === 'paradas') return Array.isArray(valor) ? valor : [];
   if (campo.tipo === 'booleano') return valor === null || valor === undefined ? undefined : !!valor;
   if (valor === null || valor === undefined) return undefined;
   if (typeof valor === 'string' && !valor.trim()) return undefined;

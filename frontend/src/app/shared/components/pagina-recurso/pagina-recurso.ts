@@ -242,7 +242,7 @@ function descreverBusca(campos: readonly string[]): string {
 
 function colunasDosCampos(campos: readonly DescricaoCampo[]): ColunaLista[] {
   return campos
-    .filter((campo) => campo.tipo !== 'senha')
+    .filter((campo) => campo.tipo !== 'senha' && campo.tipo !== 'paradas')
     .map((campo) => ({
       id: campo.nome,
       rotulo: campo.rotulo,
