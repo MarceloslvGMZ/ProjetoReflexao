@@ -52,25 +52,18 @@
     <section [class]="card + ' overflow-hidden'">
       <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
         <h2 class="font-semibold">Monitoramento em tempo real</h2>
-        <button
-          type="button"
-          [class]="btnSecundario"
-          disabled
-          aria-disabled="true"
-          title="O mapa completo depende do rastreamento, que ainda não está disponível."
-        >
-          Ver mapa completo
+        <button type="button" [class]="btnSecundario" (click)="alternarMapa()">
+          {{ mapaCompleto() ? 'Reduzir mapa' : 'Ver mapa completo' }}
         </button>
       </div>
-      <div class="relative">
-        <div class="pointer-events-none opacity-40" inert>
-          <app-mapa-operacional [disponivel]="false" [veiculos]="[]" />
-        </div>
-        <app-recurso-indisponivel
-          titulo="Indisponível no momento"
-          descricao="O acompanhamento de rotas em tempo real estará disponível em uma próxima versão."
-        />
+      <div [class]="mapaCompleto() ? 'h-[32rem]' : 'h-64'">
+        <app-mapa-operacional [veiculos]="veiculos()" />
       </div>
+      @if (posicoes.error()) {
+        <p class="px-4 py-2 text-sm text-erro-700" role="alert">Não foi possível atualizar as posições.</p>
+      } @else if (posicoes.hasValue() && veiculos().length === 0) {
+        <p class="px-4 py-2 text-sm text-slate-500">Nenhum ônibus está compartilhando a localização.</p>
+      }
     </section>
 
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">

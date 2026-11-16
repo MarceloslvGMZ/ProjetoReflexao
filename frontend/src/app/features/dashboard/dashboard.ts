@@ -1,6 +1,9 @@
-import { Component, computed, inject, resource, signal } from '@angular/core';
+import { Component, computed, inject, resource, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { LucidePlus } from '@lucide/angular';
+import { interval } from 'rxjs';
+import { ApiService } from '../../core/api/api.service';
 import { paraErroApi } from '../../core/api/erro-api';
 import { RecursoService } from '../../core/api/recurso.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -11,11 +14,11 @@ import { montarPainel, textoRestante, type Saida } from '../../shared/operacao';
 import { CLASSE_BTN_PRIMARIO, CLASSE_BTN_SECUNDARIO, CLASSE_CARD } from '../../shared/ui';
 import { FormularioDinamico } from '../../shared/components/formulario-dinamico/formulario-dinamico';
 import { Modal } from '../../shared/components/modal/modal';
-import { RecursoIndisponivel } from '../../shared/components/recurso-indisponivel/recurso-indisponivel';
 import { StatCard } from '../../shared/components/stat-card/stat-card';
 import { StatusBadge } from '../../shared/components/status-badge/status-badge';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { MapaOperacional } from './mapa-operacional';
+import { paraVeiculos, type PosicaoFrota } from './posicao-frota';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,7 +28,6 @@ import { MapaOperacional } from './mapa-operacional';
     StatusBadge,
     Modal,
     FormularioDinamico,
-    RecursoIndisponivel,
     MapaOperacional,
     LucidePlus,
   ],
@@ -33,6 +35,7 @@ import { MapaOperacional } from './mapa-operacional';
 })
 export class Dashboard {
   private readonly recursos = inject(RecursoService);
+  private readonly api = inject(ApiService);
   private readonly avisos = inject(AvisosOperacao);
   private readonly toast = inject(ToastService);
   protected readonly auth = inject(AuthService);
@@ -42,6 +45,24 @@ export class Dashboard {
   protected readonly btnPrimario = CLASSE_BTN_PRIMARIO;
   protected readonly btnSecundario = CLASSE_BTN_SECUNDARIO;
   protected readonly card = CLASSE_CARD;
+  protected readonly mapaCompleto = signal(false);
+  private readonly mapa = viewChild(MapaOperacional);
+  private readonly ciclo = signal(0);
+
+  protected readonly posicoes = resource({
+    params: () => this.ciclo(),
+    loader: () => this.api.get<PosicaoFrota[]>('/posicoes'),
+  });
+
+  protected readonly veiculos = computed(() =>
+    this.posicoes.hasValue() ? paraVeiculos(this.posicoes.value()) : [],
+  );
+
+  constructor() {
+    interval(5000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.ciclo.update((valor) => valor + 1));
+  }
 
   protected readonly dados = resource({
     params: () => this.avisos.versao(),
@@ -69,6 +90,11 @@ export class Dashboard {
     if (saida.status === 'Em breve') return 'alerta';
     if (saida.status === 'Aguardando') return 'info';
     return 'neutro';
+  }
+
+  protected alternarMapa(): void {
+    this.mapaCompleto.update((completo) => !completo);
+    setTimeout(() => this.mapa()?.redimensionar());
   }
 
   protected ocorrenciaSalva(): void {
