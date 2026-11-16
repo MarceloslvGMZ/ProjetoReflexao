@@ -7,6 +7,7 @@ import { PosicaoRepository } from './domain/posicao.repository.js';
 import { PosicoesController } from './infrastructure/http/posicoes.controller.js';
 import { PosicaoOrmEntity } from './infrastructure/persistence/posicao.orm-entity.js';
 import { TypeOrmPosicaoRepository } from './infrastructure/persistence/typeorm-posicao.repository.js';
+import { EncerrarCompartilhamentoUseCase } from './use-cases/encerrar-compartilhamento.use-case.js';
 import { ListarPosicoesUseCase } from './use-cases/listar-posicoes.use-case.js';
 import { RegistrarPosicaoUseCase } from './use-cases/registrar-posicao.use-case.js';
 
@@ -16,6 +17,7 @@ import { RegistrarPosicaoUseCase } from './use-cases/registrar-posicao.use-case.
   providers: [
     RegistrarPosicaoUseCase,
     ListarPosicoesUseCase,
+    EncerrarCompartilhamentoUseCase,
     { provide: PosicaoRepository, useClass: TypeOrmPosicaoRepository },
   ],
 })

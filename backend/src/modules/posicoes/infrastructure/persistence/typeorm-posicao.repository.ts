@@ -20,6 +20,10 @@ export class TypeOrmPosicaoRepository implements PosicaoRepository {
     return posicao;
   }
 
+  async remover(onibusId: number): Promise<void> {
+    await this.repository.delete({ onibusId });
+  }
+
   async listar(): Promise<Posicao[]> {
     const linhas = await this.repository.find({ order: { onibusId: 'ASC' } });
     return linhas.map((linha) =>

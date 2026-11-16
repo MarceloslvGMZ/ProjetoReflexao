@@ -1,4 +1,4 @@
-import { afterNextRender, Component, effect, ElementRef, input, OnDestroy, viewChild } from '@angular/core';
+import { afterNextRender, Component, effect, ElementRef, inject, input, NgZone, OnDestroy, signal, viewChild } from '@angular/core';
 import * as L from 'leaflet';
 import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
 import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
@@ -15,7 +15,9 @@ export class MapaOperacional implements OnDestroy {
   /** A tela cheia abre o mapa mesmo antes de chegar a primeira posição. */
   readonly iniciarVazio = input(false);
 
+  private readonly zona = inject(NgZone);
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
+  private readonly fichasAbertas = signal<ReadonlySet<number>>(new Set());
   private mapa: L.Map | null = null;
   private readonly camada = L.layerGroup();
   private readonly camadaRota = L.layerGroup();
@@ -31,6 +33,7 @@ export class MapaOperacional implements OnDestroy {
     effect(() => {
       this.veiculos();
       this.trajetos();
+      this.fichasAbertas();
       this.desenhar();
     });
   }
@@ -48,25 +51,31 @@ export class MapaOperacional implements OnDestroy {
   }
 
   private desenharVeiculos(mapa: L.Map): void {
-    const veiculos = this.veiculos();
+    const veiculos = this.veiculos().filter((veiculo) => !veiculo.desatualizada);
+    const abertas = this.fichasAbertas();
     const assinatura = veiculos
-      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.desatualizada}:${veiculo.atualizadoEm}`)
+      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.atualizadoEm}:${abertas.has(veiculo.id)}`)
       .join('|');
     if (assinatura === this.assinatura) return;
     this.assinatura = assinatura;
 
     this.camada.clearLayers();
     for (const veiculo of veiculos) {
-      const cor = veiculo.desatualizada ? '#d97706' : '#4f46e5';
       const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
         icon: L.divIcon({
           className: '',
-          html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:${cor};border:2px solid white;box-shadow:0 0 0 1px ${cor}"></span>`,
+          html: '<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#14624c;border:2px solid white;box-shadow:0 0 0 1px #14624c"></span>',
           iconSize: [14, 14],
           iconAnchor: [7, 7],
         }),
       });
-      marcador.bindTooltip(fichaDoVeiculo(veiculo), { direction: 'top', permanent: true, opacity: 1 });
+      marcador.bindTooltip(fichaDoVeiculo(veiculo, abertas.has(veiculo.id)), {
+        direction: 'top',
+        permanent: true,
+        opacity: 1,
+        interactive: true,
+        className: 'ficha-balao',
+      });
       marcador.addTo(this.camada);
     }
 
@@ -134,6 +143,15 @@ export class MapaOperacional implements OnDestroy {
     this.camadaRota.addTo(mapa);
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));
+    mapa.getContainer().addEventListener('click', (evento) => {
+      const alvo = (evento.target as Element | null)?.closest?.('[data-onibus]');
+      if (!(alvo instanceof HTMLElement)) return;
+      evento.preventDefault();
+      evento.stopPropagation();
+      const id = Number(alvo.dataset['onibus']);
+      if (!Number.isInteger(id)) return;
+      this.zona.run(() => this.alternarFicha(id));
+    });
     this.observador = new ResizeObserver(() => mapa.invalidateSize());
     this.observador.observe(elemento);
 
@@ -146,6 +164,15 @@ export class MapaOperacional implements OnDestroy {
     this.mapa = mapa;
     requestAnimationFrame(() => mapa.invalidateSize());
     return mapa;
+  }
+
+  private alternarFicha(id: number): void {
+    this.fichasAbertas.update((atual) => {
+      const proxima = new Set(atual);
+      if (proxima.has(id)) proxima.delete(id);
+      else proxima.add(id);
+      return proxima;
+    });
   }
 
   private lembrar(mapa: L.Map): void {

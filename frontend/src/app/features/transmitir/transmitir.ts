@@ -71,10 +71,21 @@ export class Transmitir implements OnDestroy {
   }
 
   protected parar(): void {
+    const id = this.onibusId();
+    const estavaCompartilhando = this.compartilhando();
     if (this.relogio !== null) navigator.geolocation.clearWatch(this.relogio);
     this.relogio = null;
     this.ultimoEnvio = null;
     this.compartilhando.set(false);
+    if (estavaCompartilhando && id !== null) void this.retirarDoMapa(id);
+  }
+
+  private async retirarDoMapa(onibusId: number): Promise<void> {
+    try {
+      await this.api.enviar('DELETE', `/onibus/${onibusId}/posicoes`);
+    } catch (erro) {
+      this.erro.set(paraErroApi(erro).mensagens.join(' '));
+    }
   }
 
   private async receber(onibusId: number, latitude: number, longitude: number): Promise<void> {

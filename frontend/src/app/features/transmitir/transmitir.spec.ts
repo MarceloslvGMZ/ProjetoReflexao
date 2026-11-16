@@ -52,6 +52,8 @@ describe('Transmitir', () => {
     await vi.waitFor(() => expect(elemento.textContent).toContain('Enviado'));
 
     fixture.destroy();
+    const fim = http.expectOne({ method: 'DELETE', url: `${environment.apiUrl}/onibus/3/posicoes` });
+    fim.flush(null);
     expect(clearWatch).toHaveBeenCalledWith(4);
   });
 
