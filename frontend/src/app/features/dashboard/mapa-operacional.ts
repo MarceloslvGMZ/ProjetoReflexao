@@ -75,10 +75,16 @@ export class MapaOperacional implements OnDestroy {
     if (!vista && this.veiculos().length === 0) return null;
 
     const elemento = this.superficie().nativeElement;
-    const mapa = L.map(elemento);
+    const mapa = L.map(elemento, {
+      minZoom: 3,
+      maxBounds: L.latLngBounds([-85, -180], [85, 180]),
+      maxBoundsViscosity: 1,
+    });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
+      minZoom: 3,
       maxZoom: 19,
+      noWrap: true,
     }).addTo(mapa);
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));

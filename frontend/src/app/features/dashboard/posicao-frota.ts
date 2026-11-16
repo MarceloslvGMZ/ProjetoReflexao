@@ -24,7 +24,7 @@ export interface VeiculoMapa {
 export function paraVeiculos(posicoes: readonly PosicaoFrota[]): VeiculoMapa[] {
   return posicoes.map((posicao) => ({
     id: posicao.onibusId,
-    onibus: `${posicao.modelo} · ${posicao.placa}`,
+    onibus: posicao.modelo ? `${posicao.modelo} · ${posicao.placa}` : posicao.placa,
     rota: posicao.rota ?? 'Sem rota ativa',
     motorista: posicao.motorista ?? 'Sem motorista na rota',
     atualizadoEm: new Date(posicao.atualizadoEm).toLocaleString('pt-BR'),
@@ -40,7 +40,6 @@ export function fichaDoVeiculo(veiculo: VeiculoMapa): string {
     `<strong>${escapar(veiculo.onibus)}</strong>`,
     `Rota: ${escapar(veiculo.rota)}`,
     `Motorista: ${escapar(veiculo.motorista)}`,
-    `Atualizado: ${escapar(veiculo.atualizadoEm)}`,
     estado,
   ].join('<br>');
 }

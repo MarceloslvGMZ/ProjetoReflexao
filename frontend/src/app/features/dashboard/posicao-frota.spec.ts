@@ -27,6 +27,11 @@ describe('paraVeiculos', () => {
     expect(veiculo.atualizadoEm).toContain('2026');
   });
 
+  it('usa só a placa quando a API não envia o modelo', () => {
+    const [veiculo] = paraVeiculos([{ ...posicao, modelo: undefined as unknown as string }]);
+    expect(veiculo.onibus).toBe('ABC1D23');
+  });
+
   it('preenche rota e motorista quando o ônibus não está em uma rota ativa', () => {
     const [veiculo] = paraVeiculos([{ ...posicao, rota: null, motorista: null }]);
     expect(veiculo.rota).toBe('Sem rota ativa');
@@ -46,12 +51,12 @@ describe('fichaDoVeiculo', () => {
     desatualizada: false,
   };
 
-  it('mostra ônibus, rota, motorista e horário sem interpretar HTML', () => {
+  it('mostra ônibus, rota e motorista sem interpretar HTML', () => {
     const ficha = fichaDoVeiculo(veiculo);
     expect(ficha).toContain('Marcopolo · ABC1D23');
     expect(ficha).toContain('Centro &lt;Campus&gt;');
     expect(ficha).toContain('Motorista: João');
-    expect(ficha).toContain('16/11/2026, 12:00:00');
     expect(ficha).toContain('Compartilhando');
+    expect(ficha).not.toContain('Atualizado');
   });
 });
