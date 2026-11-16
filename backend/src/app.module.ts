@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { OcorrenciasModule } from './modules/ocorrencias/ocorrencias.module.js';
+import { PosicoesModule } from './modules/posicoes/posicoes.module.js';
 import { OnibusModule } from './modules/onibus/onibus.module.js';
 import { PessoasModule } from './modules/pessoas/pessoas.module.js';
 import { RotasModule } from './modules/rotas/rotas.module.js';
@@ -30,6 +31,7 @@ import { FormulariosModule } from './shared/infrastructure/http/formulario/formu
     UsuariosModule,
     AuthModule,
     OcorrenciasModule,
+    PosicoesModule,
     FormulariosModule,
   ],
   controllers: [AppController],
