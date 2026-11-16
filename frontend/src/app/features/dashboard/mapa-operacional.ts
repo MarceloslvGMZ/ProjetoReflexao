@@ -1,14 +1,12 @@
 import { afterNextRender, Component, effect, ElementRef, input, viewChild } from '@angular/core';
 import * as L from 'leaflet';
+import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
 import type { VeiculoMapa } from './posicao-frota';
-
-/** Centro inicial quando nenhum ônibus está compartilhando. */
-const CENTRO_PADRAO: L.LatLngExpression = [-23.5505, -46.6333];
 
 @Component({
   selector: 'app-mapa-operacional',
   templateUrl: './mapa-operacional.html',
-  host: { class: 'block h-full w-full' },
+  host: { class: 'block h-full w-full bg-slate-100' },
 })
 export class MapaOperacional {
   readonly veiculos = input<readonly VeiculoMapa[]>([]);
@@ -16,19 +14,12 @@ export class MapaOperacional {
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
   private mapa: L.Map | null = null;
   private readonly camada = L.layerGroup();
+  /** Já existe um enquadramento persistido; novas posições não movem a câmera. */
   private enquadrou = false;
+  private assinatura = '';
 
   constructor() {
-    afterNextRender(() => {
-      const mapa = L.map(this.superficie().nativeElement).setView(CENTRO_PADRAO, 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 19,
-      }).addTo(mapa);
-      this.camada.addTo(mapa);
-      this.mapa = mapa;
-      this.desenhar();
-    });
+    afterNextRender(() => this.desenhar());
 
     effect(() => {
       this.veiculos();
@@ -42,11 +33,17 @@ export class MapaOperacional {
   }
 
   private desenhar(): void {
-    const mapa = this.mapa;
+    const mapa = this.garantirMapa();
     if (!mapa) return;
 
-    this.camada.clearLayers();
     const veiculos = this.veiculos();
+    const assinatura = veiculos
+      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.desatualizada}`)
+      .join('|');
+    if (assinatura === this.assinatura) return;
+    this.assinatura = assinatura;
+
+    this.camada.clearLayers();
     for (const veiculo of veiculos) {
       const cor = veiculo.desatualizada ? '#d97706' : '#4f46e5';
       const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
@@ -62,16 +59,39 @@ export class MapaOperacional {
       marcador.addTo(this.camada);
     }
 
-    if (veiculos.length === 0) {
-      mapa.setView(CENTRO_PADRAO, 12);
-      this.enquadrou = false;
-      return;
-    }
-    if (this.enquadrou) return;
+    if (veiculos.length === 0 || this.enquadrou) return;
     mapa.fitBounds(L.latLngBounds(veiculos.map((veiculo) => [veiculo.latitude, veiculo.longitude])), {
       padding: [32, 32],
       maxZoom: 16,
     });
     this.enquadrou = true;
+    this.lembrar(mapa);
+  }
+
+  /** Sem vista salva e sem veículos, o mapa ainda não é criado. */
+  private garantirMapa(): L.Map | null {
+    if (this.mapa) return this.mapa;
+    const vista = lerVistaMapa();
+    if (!vista && this.veiculos().length === 0) return null;
+
+    const mapa = L.map(this.superficie().nativeElement);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(mapa);
+    this.camada.addTo(mapa);
+    mapa.on('moveend', () => this.lembrar(mapa));
+
+    if (vista) {
+      mapa.setView([vista.latitude, vista.longitude], vista.zoom);
+      this.enquadrou = true;
+    }
+    this.mapa = mapa;
+    return mapa;
+  }
+
+  private lembrar(mapa: L.Map): void {
+    const centro = mapa.getCenter();
+    gravarVistaMapa({ latitude: centro.lat, longitude: centro.lng, zoom: mapa.getZoom() });
   }
 }

@@ -59,9 +59,9 @@
       <div [class]="mapaCompleto() ? 'h-[32rem]' : 'h-64'">
         <app-mapa-operacional [veiculos]="veiculos()" />
       </div>
-      @if (posicoes.error()) {
-        <p class="px-4 py-2 text-sm text-erro-700" role="alert">Não foi possível atualizar as posições.</p>
-      } @else if (posicoes.hasValue() && veiculos().length === 0) {
+      @if (erroPosicoes(); as mensagem) {
+        <p class="px-4 py-2 text-sm text-erro-700" role="alert">{{ mensagem }}</p>
+      } @else if (posicoesConsultadas() && veiculos().length === 0) {
         <p class="px-4 py-2 text-sm text-slate-500">Nenhum ônibus está compartilhando a localização.</p>
       }
     </section>

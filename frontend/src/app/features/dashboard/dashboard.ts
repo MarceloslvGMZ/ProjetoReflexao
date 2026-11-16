@@ -18,7 +18,7 @@ import { StatCard } from '../../shared/components/stat-card/stat-card';
 import { StatusBadge } from '../../shared/components/status-badge/status-badge';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { MapaOperacional } from './mapa-operacional';
-import { paraVeiculos, type PosicaoFrota } from './posicao-frota';
+import { paraVeiculos, type PosicaoFrota, type VeiculoMapa } from './posicao-frota';
 
 @Component({
   selector: 'app-dashboard',
@@ -47,21 +47,27 @@ export class Dashboard {
   protected readonly card = CLASSE_CARD;
   protected readonly mapaCompleto = signal(false);
   private readonly mapa = viewChild(MapaOperacional);
-  private readonly ciclo = signal(0);
-
-  protected readonly posicoes = resource({
-    params: () => this.ciclo(),
-    loader: () => this.api.get<PosicaoFrota[]>('/posicoes'),
-  });
-
-  protected readonly veiculos = computed(() =>
-    this.posicoes.hasValue() ? paraVeiculos(this.posicoes.value()) : [],
-  );
+  protected readonly veiculos = signal<readonly VeiculoMapa[]>([]);
+  protected readonly erroPosicoes = signal<string | null>(null);
+  protected readonly posicoesConsultadas = signal(false);
 
   constructor() {
+    void this.atualizarPosicoes();
     interval(5000)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.ciclo.update((valor) => valor + 1));
+      .subscribe(() => void this.atualizarPosicoes());
+  }
+
+  private async atualizarPosicoes(): Promise<void> {
+    try {
+      const lista = await this.api.get<PosicaoFrota[]>('/posicoes');
+      this.veiculos.set(paraVeiculos(lista));
+      this.erroPosicoes.set(null);
+    } catch (erro) {
+      this.erroPosicoes.set(paraErroApi(erro).mensagens.join(' '));
+    } finally {
+      this.posicoesConsultadas.set(true);
+    }
   }
 
   protected readonly dados = resource({
