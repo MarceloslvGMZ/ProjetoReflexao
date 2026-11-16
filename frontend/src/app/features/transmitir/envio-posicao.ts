@@ -1,5 +1,5 @@
 /** Intervalo mínimo entre dois envios do mesmo celular. */
-export const INTERVALO_ENVIO_MS = 5000;
+export const INTERVALO_ENVIO_MS = 2000;
 
 export function deveEnviarPosicao(
   ultimoEnvio: number | null,

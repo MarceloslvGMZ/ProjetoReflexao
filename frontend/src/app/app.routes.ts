@@ -19,6 +19,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'mapa',
+        data: { titulo: 'Mapa da frota' },
+        loadComponent: () => import('./features/dashboard/mapa-tela').then((m) => m.MapaTela),
+      },
+      {
         path: 'onibus',
         data: { titulo: 'Ônibus' },
         loadComponent: () => import('./features/onibus/onibus').then((m) => m.OnibusPage),

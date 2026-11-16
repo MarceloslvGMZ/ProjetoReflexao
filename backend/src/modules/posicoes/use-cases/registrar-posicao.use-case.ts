@@ -13,6 +13,12 @@ export interface PosicaoRegistrada {
   desatualizada: boolean;
 }
 
+export interface PosicaoDaFrota extends PosicaoRegistrada {
+  modelo: string;
+  rota: string | null;
+  motorista: string | null;
+}
+
 @Injectable()
 export class RegistrarPosicaoUseCase {
   constructor(

@@ -1,19 +1,20 @@
-import { afterNextRender, Component, effect, ElementRef, input, viewChild } from '@angular/core';
+import { afterNextRender, Component, effect, ElementRef, input, OnDestroy, viewChild } from '@angular/core';
 import * as L from 'leaflet';
 import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
-import type { VeiculoMapa } from './posicao-frota';
+import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
 
 @Component({
   selector: 'app-mapa-operacional',
   templateUrl: './mapa-operacional.html',
   host: { class: 'block h-full w-full bg-slate-100' },
 })
-export class MapaOperacional {
+export class MapaOperacional implements OnDestroy {
   readonly veiculos = input<readonly VeiculoMapa[]>([]);
 
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
   private mapa: L.Map | null = null;
   private readonly camada = L.layerGroup();
+  private observador: ResizeObserver | null = null;
   /** Já existe um enquadramento persistido; novas posições não movem a câmera. */
   private enquadrou = false;
   private assinatura = '';
@@ -27,9 +28,9 @@ export class MapaOperacional {
     });
   }
 
-  /** O Leaflet não percebe sozinho quando o contêiner muda de altura. */
-  redimensionar(): void {
-    this.mapa?.invalidateSize();
+  ngOnDestroy(): void {
+    this.observador?.disconnect();
+    this.mapa?.remove();
   }
 
   private desenhar(): void {
@@ -38,7 +39,7 @@ export class MapaOperacional {
 
     const veiculos = this.veiculos();
     const assinatura = veiculos
-      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.desatualizada}`)
+      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.desatualizada}:${veiculo.atualizadoEm}`)
       .join('|');
     if (assinatura === this.assinatura) return;
     this.assinatura = assinatura;
@@ -54,8 +55,7 @@ export class MapaOperacional {
           iconAnchor: [7, 7],
         }),
       });
-      const estado = veiculo.desatualizada ? 'sem sinal recente' : 'compartilhando';
-      marcador.bindTooltip(`${veiculo.rotulo} · ${estado}`, { direction: 'top' });
+      marcador.bindTooltip(fichaDoVeiculo(veiculo), { direction: 'top', permanent: true, opacity: 1 });
       marcador.addTo(this.camada);
     }
 
@@ -74,19 +74,23 @@ export class MapaOperacional {
     const vista = lerVistaMapa();
     if (!vista && this.veiculos().length === 0) return null;
 
-    const mapa = L.map(this.superficie().nativeElement);
+    const elemento = this.superficie().nativeElement;
+    const mapa = L.map(elemento);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
     }).addTo(mapa);
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));
+    this.observador = new ResizeObserver(() => mapa.invalidateSize());
+    this.observador.observe(elemento);
 
     if (vista) {
       mapa.setView([vista.latitude, vista.longitude], vista.zoom);
       this.enquadrou = true;
     }
     this.mapa = mapa;
+    requestAnimationFrame(() => mapa.invalidateSize());
     return mapa;
   }
 

@@ -1,4 +1,4 @@
-import { Component, computed, inject, resource, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, resource, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { LucidePlus } from '@lucide/angular';
@@ -45,15 +45,13 @@ export class Dashboard {
   protected readonly btnPrimario = CLASSE_BTN_PRIMARIO;
   protected readonly btnSecundario = CLASSE_BTN_SECUNDARIO;
   protected readonly card = CLASSE_CARD;
-  protected readonly mapaCompleto = signal(false);
-  private readonly mapa = viewChild(MapaOperacional);
   protected readonly veiculos = signal<readonly VeiculoMapa[]>([]);
   protected readonly erroPosicoes = signal<string | null>(null);
   protected readonly posicoesConsultadas = signal(false);
 
   constructor() {
     void this.atualizarPosicoes();
-    interval(5000)
+    interval(2000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => void this.atualizarPosicoes());
   }
@@ -96,11 +94,6 @@ export class Dashboard {
     if (saida.status === 'Em breve') return 'alerta';
     if (saida.status === 'Aguardando') return 'info';
     return 'neutro';
-  }
-
-  protected alternarMapa(): void {
-    this.mapaCompleto.update((completo) => !completo);
-    setTimeout(() => this.mapa()?.redimensionar());
   }
 
   protected ocorrenciaSalva(): void {
