@@ -28,6 +28,20 @@ describe('mapearErrosServidor', () => {
     expect(porCampo.get('onibusId')).toEqual(['Ônibus não encontrado']);
   });
 
+  it('não prende no usuário uma falha que também cita a senha', () => {
+    const login = {
+      ...PESSOA_CRIAR,
+      campos: [
+        { nome: 'usuario', rotulo: 'Usuário', tipo: 'texto' as const, obrigatorio: true },
+        { nome: 'senha', rotulo: 'Senha', tipo: 'senha' as const, obrigatorio: true },
+      ],
+    };
+    const { porCampo, gerais } = mapearErrosServidor(login, ['Usuário ou senha inválidos']);
+
+    expect(porCampo.size).toBe(0);
+    expect(gerais).toEqual(['Usuário ou senha inválidos']);
+  });
+
   it('mantém como gerais as mensagens que não citam um campo', () => {
     const { porCampo, gerais } = mapearErrosServidor(PESSOA_CRIAR, [
       'Já existe uma pessoa com esse CPF',

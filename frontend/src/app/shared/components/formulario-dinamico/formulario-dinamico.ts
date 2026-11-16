@@ -110,6 +110,7 @@ export class FormularioDinamico {
       const { form, descricao } = this.estrutura.value();
       this.valores.set(form.getRawValue());
       const inscricao = form.valueChanges.subscribe(() => {
+        this.limparErrosDoServidor(form);
         aplicarCondicoes(form, descricao);
         this.valores.set(form.getRawValue());
       });
@@ -143,6 +144,16 @@ export class FormularioDinamico {
       this.exibirErrosDoServidor(estrutura, paraErroApi(erro).mensagens);
     } finally {
       this.enviando.set(false);
+    }
+  }
+
+  private limparErrosDoServidor(form: FormGroupDinamico): void {
+    this.errosGerais.set([]);
+    for (const controle of Object.values(form.controls)) {
+      if (!controle.hasError('servidor')) continue;
+      const erros = { ...controle.errors };
+      delete erros['servidor'];
+      controle.setErrors(Object.keys(erros).length > 0 ? erros : null);
     }
   }
 

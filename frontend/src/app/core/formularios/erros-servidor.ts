@@ -39,9 +39,16 @@ function campoDaValidacao(campos: DescricaoCampo[], mensagem: string) {
 
 function campoPeloRotulo(campos: DescricaoCampo[], mensagem: string): DescricaoCampo | undefined {
   const texto = mensagem.toLocaleLowerCase('pt-BR');
-  return campos
+  const candidato = campos
     .filter((c) => texto.startsWith(`${c.rotulo.toLocaleLowerCase('pt-BR')} `))
     .sort((a, b) => b.rotulo.length - a.rotulo.length)[0];
+  if (!candidato) return undefined;
+
+  const resto = texto.slice(candidato.rotulo.length);
+  const citaOutroCampo = campos.some(
+    (c) => c !== candidato && resto.includes(c.rotulo.toLocaleLowerCase('pt-BR')),
+  );
+  return citaOutroCampo ? undefined : candidato;
 }
 
 const TRADUCOES: [RegExp, string][] = [
