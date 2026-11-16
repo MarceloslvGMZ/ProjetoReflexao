@@ -7,12 +7,14 @@ import {
   LucideKeyRound,
   LucideLifeBuoy,
   LucideLogOut,
+  LucideMapPin,
   LucideRoute,
   LucideTriangleAlert,
   LucideUserRound,
   LucideUsers,
   LucideX,
 } from '@lucide/angular';
+import type { Perfil } from '../../models';
 import { rotuloOpcao } from '../../formularios/rotulos';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutService } from '../layout.service';
@@ -23,6 +25,8 @@ interface LinkMenu {
   caminho: string;
   rotulo: string;
   somenteAdmin?: boolean;
+  /** Quando informado, o link só aparece para esses perfis. */
+  perfis?: readonly Perfil[];
   avisos?: boolean;
 }
 
@@ -41,6 +45,7 @@ interface LinkMenu {
     LucideTriangleAlert,
     LucideUserRound,
     LucideKeyRound,
+    LucideMapPin,
     LucideLifeBuoy,
     LucideLogOut,
     LucideX,
@@ -60,11 +65,16 @@ export class Sidebar {
     { caminho: '/pessoas', rotulo: 'Pessoas' },
     { caminho: '/rotas', rotulo: 'Rotas' },
     { caminho: '/ocorrencias', rotulo: 'Ocorrências', avisos: true },
+    { caminho: '/transmitir', rotulo: 'Compartilhar localização', perfis: ['MOTORISTA', 'ADMINISTRADOR'] },
     { caminho: '/usuarios', rotulo: 'Usuários', somenteAdmin: true },
   ];
 
   protected readonly visiveis = computed(() =>
-    this.links.filter((link) => !link.somenteAdmin || this.auth.ehAdministrador()),
+    this.links.filter(
+      (link) =>
+        (!link.somenteAdmin || this.auth.ehAdministrador()) &&
+        (!link.perfis || this.auth.possuiPerfil(link.perfis)),
+    ),
   );
 
   protected readonly iniciais = computed(() => (this.auth.usuario()?.usuario ?? '?').slice(0, 2).toUpperCase());

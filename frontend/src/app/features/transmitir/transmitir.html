@@ -1,0 +1,68 @@
+<app-page-header
+  titulo="Compartilhar localização"
+  descricao="Escolha o ônibus e confirme o uso da localização deste celular. A tela precisa permanecer aberta."
+/>
+
+<section class="mt-6 max-w-lg rounded-2xl border border-slate-200 bg-white p-5">
+  @if (carregando()) {
+    <p class="text-sm text-slate-500">Carregando ônibus…</p>
+  } @else if (onibus().length === 0) {
+    <p class="text-sm text-slate-500">Nenhum ônibus cadastrado. Cadastre um veículo antes de compartilhar.</p>
+  } @else {
+    <label class="block text-sm font-medium text-slate-700" for="onibus">Ônibus</label>
+    <select
+      id="onibus"
+      class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      [disabled]="compartilhando()"
+      [ngModel]="onibusId()"
+      (ngModelChange)="onibusId.set($event)"
+    >
+      @for (veiculo of onibus(); track veiculo.id) {
+        <option [ngValue]="veiculo.id">{{ veiculo.placa }} · {{ veiculo.modelo }}</option>
+      }
+    </select>
+
+    <div class="mt-4 flex gap-2">
+      @if (!compartilhando()) {
+        <button
+          type="button"
+          class="rounded-lg bg-primaria-600 px-4 py-2 text-sm font-medium text-white"
+          (click)="compartilhar()"
+        >
+          Compartilhar localização
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+          (click)="parar()"
+        >
+          Parar
+        </button>
+      }
+    </div>
+  }
+
+  @if (erro(); as mensagem) {
+    <p role="alert" class="mt-4 rounded-lg bg-erro-50 px-3 py-2 text-sm text-erro-700">{{ mensagem }}</p>
+  }
+
+  @if (leitura(); as ponto) {
+    <dl class="mt-4 space-y-1 text-sm text-slate-600">
+      <div class="flex justify-between gap-4">
+        <dt>Latitude</dt>
+        <dd class="font-medium text-slate-900">{{ ponto.latitude }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt>Longitude</dt>
+        <dd class="font-medium text-slate-900">{{ ponto.longitude }}</dd>
+      </div>
+      <div class="flex justify-between gap-4">
+        <dt>Último envio</dt>
+        <dd class="font-medium text-slate-900">
+          {{ envio() === 'enviado' ? 'Enviado' : envio() === 'falhou' ? 'Falhou' : 'Aguardando' }}
+        </dd>
+      </div>
+    </dl>
+  }
+</section>

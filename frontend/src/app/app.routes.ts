@@ -39,6 +39,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/ocorrencias/ocorrencias').then((m) => m.OcorrenciasPage),
       },
       {
+        path: 'transmitir',
+        data: { titulo: 'Compartilhar localização' },
+        canActivate: [perfilGuard('MOTORISTA', 'ADMINISTRADOR')],
+        loadComponent: () => import('./features/transmitir/transmitir').then((m) => m.Transmitir),
+      },
+      {
         path: 'usuarios',
         data: { titulo: 'Usuários' },
         canActivate: [perfilGuard('ADMINISTRADOR')],

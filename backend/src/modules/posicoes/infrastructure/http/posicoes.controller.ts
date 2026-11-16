@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post } from '@nestjs/common';
 import type { PayloadToken } from '../../../auth/domain/token.service.js';
-import { UsuarioLogado } from '../../../auth/infrastructure/http/decorators.js';
+import { Perfis, UsuarioLogado } from '../../../auth/infrastructure/http/decorators.js';
 import { ListarPosicoesUseCase } from '../../use-cases/listar-posicoes.use-case.js';
 import { RegistrarPosicaoUseCase } from '../../use-cases/registrar-posicao.use-case.js';
 import { RegistrarPosicaoDto } from './registrar-posicao.dto.js';
@@ -12,6 +12,7 @@ export class PosicoesController {
     private readonly listarPosicoes: ListarPosicoesUseCase,
   ) {}
 
+  @Perfis('MOTORISTA', 'ADMINISTRADOR')
   @Post('onibus/:id/posicoes')
   @HttpCode(HttpStatus.OK)
   registrar(
