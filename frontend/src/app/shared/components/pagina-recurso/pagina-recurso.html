@@ -9,7 +9,7 @@
   </app-page-header>
 
   @if (indicadores().length) {
-    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+    <section class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
       @for (indicador of indicadores(); track indicador.rotulo) {
         <app-stat-card
           [rotulo]="indicador.rotulo"
@@ -26,7 +26,8 @@
       <div class="lg:w-72">
         <app-search-input
           [valor]="termo()"
-          [rotulo]="'Buscar em ' + config().titulo"
+          [rotulo]="dicaBusca()"
+          [exibirRotulo]="true"
           placeholder="Buscar nesta página"
           (valorChange)="definirBusca($event)"
         />

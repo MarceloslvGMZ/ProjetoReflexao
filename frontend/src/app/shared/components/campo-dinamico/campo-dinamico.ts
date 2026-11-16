@@ -5,17 +5,18 @@ import { paraDataHoraLocal } from '../../../core/formularios/formulario.builder'
 import type { DescricaoCampo } from '../../../core/formularios/formulario.model';
 import { ReferenciasService } from '../../../core/formularios/referencias.service';
 import { rotuloOpcao } from '../../../core/formularios/rotulos';
+import { AdornoCampo } from '../adorno-campo/adorno-campo';
 
 const CLASSE_BASE =
-  'block w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-xs transition ' +
+  'box-border block h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-xs transition ' +
   'placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed ' +
   'disabled:bg-slate-100 disabled:text-slate-500';
-const CLASSE_NORMAL = 'border-slate-300 focus:border-primaria-500 focus:ring-primaria-200';
+const CLASSE_NORMAL = 'border-stone-300 focus:border-primaria-500 focus:ring-primaria-200';
 const CLASSE_INVALIDA = 'border-erro-600 focus:border-erro-600 focus:ring-erro-50';
 
 @Component({
   selector: 'app-campo-dinamico',
-  imports: [ReactiveFormsModule, LucideCircleAlert, LucideEye, LucideEyeOff],
+  imports: [ReactiveFormsModule, LucideCircleAlert, LucideEye, LucideEyeOff, AdornoCampo],
   templateUrl: './campo-dinamico.html',
   host: { class: 'block' },
 })

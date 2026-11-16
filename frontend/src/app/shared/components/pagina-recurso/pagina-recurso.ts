@@ -104,6 +104,8 @@ export class PaginaRecurso implements OnInit {
     loader: ({ params }) => this.carregarOpcoes(params),
   });
 
+  protected readonly dicaBusca = computed(() => descreverBusca(this.config().buscarEm));
+
   protected readonly indicadores = computed(() =>
     this.config().indicadores?.({
       itens: this.store.itens(),
@@ -212,6 +214,30 @@ export class PaginaRecurso implements OnInit {
     );
     return opcoes;
   }
+}
+
+const ROTULOS_BUSCA: Record<string, string> = {
+  placa: 'placa',
+  modelo: 'modelo',
+  ano: 'ano',
+  nome: 'nome',
+  cpf: 'CPF',
+  matricula: 'matrícula',
+  origem: 'origem',
+  destino: 'destino',
+  titulo: 'título',
+  descricao: 'descrição',
+  usuario: 'usuário',
+};
+
+/** Diz o que a caixa procura. Sem isso, o campo fica só com o placeholder, ao lado dos filtros que já têm rótulo. */
+function descreverBusca(campos: readonly string[]): string {
+  const nomes = campos.map((campo) => ROTULOS_BUSCA[campo] ?? campo);
+  if (nomes.length === 0) return 'Busca';
+  if (nomes.length === 1) return `Buscar por ${nomes[0]}`;
+  const ultimo = nomes[nomes.length - 1];
+  const frase = `${nomes.slice(0, -1).join(', ')} ou ${ultimo}`;
+  return `Buscar por ${frase}`;
 }
 
 function colunasDosCampos(campos: readonly DescricaoCampo[]): ColunaLista[] {

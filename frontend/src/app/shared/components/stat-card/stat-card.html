@@ -1,13 +1,20 @@
-<article [class]="card + ' p-4'">
-  <p class="text-sm text-slate-500">{{ rotulo() }}</p>
-  <p
-    class="mt-1 font-display text-2xl font-bold"
-    [class.text-alerta-700]="tom() === 'alerta'"
-    [class.text-slate-900]="tom() !== 'alerta'"
-  >
-    {{ valor() }}
+<article [class]="card + ' relative h-[94px] overflow-hidden p-4 pl-5'">
+  <span
+    class="absolute inset-y-0 left-0 w-1 bg-primaria-600"
+    [class.bg-alerta-600]="tom() === 'alerta'"
+    aria-hidden="true"
+  ></span>
+  <p class="truncate text-sm leading-5 text-slate-500">{{ rotulo() }}</p>
+  <p class="mt-1 flex items-baseline gap-2">
+    <span
+      class="shrink-0 font-display text-3xl font-extrabold tracking-tight"
+      [class.text-alerta-700]="tom() === 'alerta'"
+      [class.text-tinta]="tom() !== 'alerta'"
+    >
+      {{ valor() }}
+    </span>
+    @if (detalhe()) {
+      <span class="truncate text-xs text-slate-500" [attr.title]="detalhe()">{{ detalhe() }}</span>
+    }
   </p>
-  @if (detalhe()) {
-    <p class="mt-1 text-xs text-slate-500">{{ detalhe() }}</p>
-  }
 </article>

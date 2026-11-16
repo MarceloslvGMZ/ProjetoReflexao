@@ -65,6 +65,8 @@ export class FormularioDinamico {
   readonly somenteLeitura = input<readonly string[]>([]);
   readonly rotuloEnviar = input('Salvar');
   readonly exibirCancelar = input(true);
+  /** O botão de enviar ocupa a largura do formulário. Usado no acesso, sem o cancelar ao lado. */
+  readonly botaoCheio = input(false);
 
   readonly salvo = output<unknown>();
   readonly cancelado = output();

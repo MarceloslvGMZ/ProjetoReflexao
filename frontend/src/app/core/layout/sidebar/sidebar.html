@@ -1,4 +1,4 @@
-<aside class="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white md:flex">
+<aside class="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col bg-tinta text-slate-200 md:flex">
   <ng-container *ngTemplateOutlet="conteudo" />
 </aside>
 
@@ -14,7 +14,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="Menu"
-      class="relative flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl"
+      class="relative flex h-full w-72 max-w-[85vw] flex-col bg-tinta text-slate-200 shadow-xl"
       appTrapFocus
     >
       <ng-container *ngTemplateOutlet="conteudo; context: { movel: true }" />
@@ -25,18 +25,18 @@
 <ng-template #conteudo let-movel="movel">
   <div class="flex items-center justify-between gap-3 px-5 py-5">
     <div class="flex items-center gap-3">
-      <span class="flex size-10 items-center justify-center rounded-xl bg-primaria-600 text-white">
+      <span class="flex size-10 items-center justify-center rounded-xl bg-sinal text-tinta">
         <svg lucideBus [size]="20"></svg>
       </span>
       <div>
-        <p class="font-display text-lg leading-tight font-bold">ViaFácil</p>
-        <p class="text-xs text-slate-500">Gestão de transporte</p>
+        <p class="font-display text-lg leading-tight font-extrabold tracking-tight text-white">ViaFácil</p>
+        <p class="text-xs text-slate-400">Gestão de transporte</p>
       </div>
     </div>
     @if (movel) {
       <button
         type="button"
-        class="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
+        class="rounded-lg p-1 text-slate-300 hover:bg-white/10"
         aria-label="Fechar menu"
         (click)="layout.fecharMenu()"
       >
@@ -49,8 +49,8 @@
     @for (link of visiveis(); track link.caminho) {
       <a
         [routerLink]="link.caminho"
-        routerLinkActive="bg-primaria-50 text-primaria-700"
-        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        routerLinkActive="bg-white/10 text-white"
+        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
         (click)="layout.fecharMenu()"
       >
         @switch (link.caminho) {
@@ -79,7 +79,7 @@
         <span class="flex-1">{{ link.rotulo }}</span>
         @if (link.avisos && avisos() > 0) {
           <span
-            class="rounded-full bg-alerta-50 px-2 py-0.5 text-xs font-semibold text-alerta-700"
+            class="rounded-full bg-sinal px-2 py-0.5 text-xs font-semibold text-tinta"
             [attr.aria-label]="avisos() + ' ocorrências nas últimas 24 horas'"
           >
             {{ avisos() }}
@@ -92,31 +92,31 @@
   <div class="space-y-3 p-3">
     <button
       type="button"
-      class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left hover:bg-slate-100"
+      class="w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-left hover:bg-white/10"
       (click)="suporteAberto.set(true)"
     >
-      <span class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+      <span class="flex items-center gap-2 text-sm font-semibold text-white">
         <svg lucideLifeBuoy [size]="16"></svg>
         Central de suporte
       </span>
-      <span class="mt-1 block text-xs text-slate-500">Fale com o administrador do sistema.</span>
+      <span class="mt-1 block text-xs text-slate-400">Fale com o administrador do sistema.</span>
     </button>
 
-    <div class="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+    <div class="flex items-center gap-3 rounded-2xl border border-white/10 p-3">
       <span
-        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primaria-100 text-xs font-bold text-primaria-700"
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-sinal text-xs font-bold text-tinta"
         aria-hidden="true"
       >
         {{ iniciais() }}
       </span>
       <span class="min-w-0">
-        <span class="block truncate text-sm font-semibold text-slate-800">{{ auth.usuario()?.usuario }}</span>
-        <span class="block text-xs text-slate-500">{{ perfil() }}</span>
+        <span class="block truncate text-sm font-semibold text-white">{{ auth.usuario()?.usuario }}</span>
+        <span class="block text-xs text-slate-400">{{ perfil() }}</span>
       </span>
       <span class="ml-auto flex">
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+          class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white"
           aria-label="Alterar senha"
           (click)="alterarSenha.emit()"
         >
@@ -124,7 +124,7 @@
         </button>
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+          class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white"
           aria-label="Sair"
           (click)="sair()"
         >

@@ -1,27 +1,79 @@
-<main class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-  <section class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-    <div class="mb-6 flex items-center gap-3">
-      <span class="flex size-11 items-center justify-center rounded-xl bg-primaria-600 text-white">
-        <svg lucideBus [size]="22"></svg>
+<main class="grid min-h-screen bg-papel lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)]">
+  <section class="relative hidden overflow-hidden bg-tinta text-white lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10">
+    <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 800 900" fill="none" aria-hidden="true">
+      <path
+        d="M-30 210 C 150 120, 250 300, 430 230 S 690 120, 860 230"
+        stroke="#e7a11a"
+        stroke-width="3"
+        stroke-dasharray="12 16"
+        stroke-linecap="round"
+      />
+      <path
+        d="M-40 470 C 170 390, 280 560, 500 490 S 720 400, 920 500"
+        stroke="#8ec9b4"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <circle cx="430" cy="230" r="8" fill="#e7a11a" />
+      <circle cx="500" cy="490" r="6" fill="#8ec9b4" />
+    </svg>
+
+    <div class="relative flex items-center gap-3">
+      <span class="flex size-12 items-center justify-center rounded-2xl bg-sinal text-tinta">
+        <svg lucideBus [size]="24"></svg>
       </span>
       <div>
-        <p class="font-display text-xl font-bold">ViaFácil</p>
-        <p class="text-sm text-slate-500">Gestão de transporte</p>
+        <p class="font-display text-2xl leading-none font-extrabold tracking-tight">ViaFácil</p>
+        <p class="mt-1 text-sm text-slate-300">Gestão de transporte</p>
       </div>
     </div>
-    <h1 class="text-lg font-semibold text-slate-900">Entrar</h1>
-    <p class="mt-1 mb-5 text-sm text-slate-500">
-      Use seu usuário e senha. O acesso não é feito por e-mail.
-    </p>
-    @if (erro()) {
-      <p role="alert" class="mb-4 rounded-lg bg-erro-50 px-3 py-2 text-sm text-erro-700">{{ erro() }}</p>
-    }
-    <app-formulario-dinamico
-      recurso="auth"
-      acao="entrar"
-      rotuloEnviar="Entrar"
-      [exibirCancelar]="false"
-      (salvo)="entrar($event)"
-    />
+
+    <div class="relative max-w-md">
+      <p class="font-display text-4xl leading-[1.15] font-extrabold tracking-tight">
+        A frota do dia,<br />numa tela só.
+      </p>
+      <p class="mt-4 text-lg text-slate-300">
+        Saídas, veículos em rota e ocorrências recentes, no mesmo painel da operação.
+      </p>
+    </div>
+
+    <ul class="relative flex flex-wrap gap-2 text-sm font-medium">
+      <li class="rounded-full border border-white/15 bg-white/5 px-3 py-1">Ônibus em rota</li>
+      <li class="rounded-full border border-white/15 bg-white/5 px-3 py-1">Saídas do dia</li>
+      <li class="rounded-full border border-sinal/40 bg-sinal/15 px-3 py-1 text-sinal">Ocorrências</li>
+    </ul>
+  </section>
+
+  <section class="flex items-center justify-center px-4 py-10 sm:px-8">
+    <div class="w-full max-w-md">
+      <div class="mb-6 flex items-center gap-3 lg:hidden">
+        <span class="flex size-11 items-center justify-center rounded-2xl bg-tinta text-sinal">
+          <svg lucideBus [size]="22"></svg>
+        </span>
+        <div>
+          <p class="font-display text-xl font-extrabold tracking-tight text-tinta">ViaFácil</p>
+          <p class="text-sm text-slate-500">Gestão de transporte</p>
+        </div>
+      </div>
+
+      <section class="rounded-3xl border border-stone-200/80 bg-papel-cartao p-6 shadow-lg shadow-tinta/5 sm:p-8">
+        <p class="text-xs font-semibold tracking-[0.16em] text-primaria-700 uppercase">Acesso da operação</p>
+        <h1 class="mt-2 font-display text-3xl font-extrabold tracking-tight text-tinta">Entrar</h1>
+        <p class="mt-2 mb-6 text-sm text-slate-500">
+          Use seu usuário e senha. O acesso não é feito por e-mail.
+        </p>
+        @if (erro()) {
+          <p role="alert" class="mb-4 rounded-xl bg-erro-50 px-3 py-2 text-sm text-erro-700">{{ erro() }}</p>
+        }
+        <app-formulario-dinamico
+          recurso="auth"
+          acao="entrar"
+          rotuloEnviar="Entrar"
+          [exibirCancelar]="false"
+          [botaoCheio]="true"
+          (salvo)="entrar($event)"
+        />
+      </section>
+    </div>
   </section>
 </main>

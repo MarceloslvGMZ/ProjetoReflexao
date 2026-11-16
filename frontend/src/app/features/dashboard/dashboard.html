@@ -1,8 +1,9 @@
 <div class="space-y-5">
   <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <p class="text-sm text-slate-500">{{ dataHoje }}</p>
-      <h1 class="text-2xl font-bold">Olá, {{ auth.usuario()?.usuario }}</h1>
+      <p class="text-xs font-semibold tracking-[0.16em] text-primaria-700 uppercase">Operação do dia</p>
+      <p class="mt-2 text-sm text-slate-500">{{ dataHoje }}</p>
+      <h1 class="font-display text-3xl font-extrabold tracking-tight text-tinta">Olá, {{ auth.usuario()?.usuario }}</h1>
       <p class="mt-1 text-sm text-slate-500">Acompanhe a frota, as rotas e as ocorrências do dia.</p>
     </div>
     <button type="button" [class]="btnPrimario" (click)="novaOcorrencia.set(true)">
@@ -25,7 +26,7 @@
     </div>
   } @else {
     @let resumo = painel()!;
-    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+    <section class="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
       <app-stat-card
         rotulo="Frota em operação"
         [valor]="resumo.frotaEmOperacao + ' de ' + resumo.frotaTotal"

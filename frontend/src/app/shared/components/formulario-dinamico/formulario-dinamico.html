@@ -43,11 +43,15 @@
       />
     }
 
-    <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+    <div
+      class="flex flex-col-reverse gap-2 pt-2"
+      [class.sm:flex-row]="!botaoCheio()"
+      [class.sm:justify-end]="!botaoCheio()"
+    >
       @if (exibirCancelar()) {
         <button
           type="button"
-          class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-xs hover:bg-slate-50"
+          class="rounded-xl border border-stone-300 bg-papel-cartao px-4 py-2.5 text-sm font-medium text-slate-700 shadow-xs hover:bg-stone-50"
           (click)="cancelado.emit()"
         >
           Cancelar
@@ -55,7 +59,8 @@
       }
       <button
         type="submit"
-        class="inline-flex items-center justify-center gap-2 rounded-lg bg-primaria-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-primaria-700 disabled:cursor-not-allowed disabled:opacity-70"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-primaria-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primaria-700 disabled:cursor-not-allowed disabled:opacity-70"
+        [class.w-full]="botaoCheio()"
         [disabled]="enviando()"
       >
         @if (enviando()) {

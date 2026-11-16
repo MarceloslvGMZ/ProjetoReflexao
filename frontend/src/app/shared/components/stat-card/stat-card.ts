@@ -5,6 +5,7 @@ import { CLASSE_CARD } from '../../ui';
 @Component({
   selector: 'app-stat-card',
   templateUrl: './stat-card.html',
+  host: { class: 'block' },
 })
 export class StatCard {
   readonly rotulo = input.required<string>();

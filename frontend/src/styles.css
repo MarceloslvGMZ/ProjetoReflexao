@@ -2,15 +2,20 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
 
-  --color-primaria-50: var(--color-indigo-50);
-  --color-primaria-100: var(--color-indigo-100);
-  --color-primaria-200: var(--color-indigo-200);
-  --color-primaria-500: var(--color-indigo-500);
-  --color-primaria-600: var(--color-indigo-600);
-  --color-primaria-700: var(--color-indigo-700);
+  --color-tinta: #102033;
+  --color-sinal: #e7a11a;
+  --color-papel: #f3efe6;
+  --color-papel-cartao: #fffcf7;
+
+  --color-primaria-50: #e7f3ef;
+  --color-primaria-100: #c5e4d8;
+  --color-primaria-200: #8ec9b4;
+  --color-primaria-500: #1d7a5f;
+  --color-primaria-600: #14624c;
+  --color-primaria-700: #0e4a3a;
 
   --color-sucesso-50: var(--color-emerald-50);
   --color-sucesso-600: var(--color-emerald-600);
@@ -31,7 +36,8 @@
 
 @layer base {
   html {
-    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+    background-color: var(--color-papel);
+    @apply font-sans text-slate-800 antialiased;
   }
 
   h1,
