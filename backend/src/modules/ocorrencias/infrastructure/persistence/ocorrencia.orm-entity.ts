@@ -14,7 +14,7 @@ export class OcorrenciaOrmEntity {
   @Column('text')
   descricao: string;
 
-  @Column('datetime')
+  @Column({ type: 'timestamptz' })
   dataHora: Date;
 
   @Column()

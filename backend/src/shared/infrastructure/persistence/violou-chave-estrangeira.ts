@@ -1,7 +1,8 @@
 import { QueryFailedError } from 'typeorm';
 
-// O SQLite usa códigos diferentes conforme a regra (ex.: RESTRICT gera SQLITE_CONSTRAINT_TRIGGER),
-// mas a mensagem é sempre a mesma.
+/** Postgres sinaliza violação de chave estrangeira com o código 23503. */
 export function violouChaveEstrangeira(error: unknown): boolean {
-  return error instanceof QueryFailedError && error.message.includes('FOREIGN KEY constraint failed');
+  if (!(error instanceof QueryFailedError)) return false;
+  const codigo = (error.driverError as { code?: string } | undefined)?.code;
+  return codigo === '23503';
 }

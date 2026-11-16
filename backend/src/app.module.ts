@@ -1,3 +1,5 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
@@ -12,18 +14,19 @@ import { RotasModule } from './modules/rotas/rotas.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { DomainErrorFilter } from './shared/infrastructure/http/domain-error.filter.js';
 import { FormulariosModule } from './shared/infrastructure/http/formulario/formularios.module.js';
+import { opcoesDoBanco } from './shared/infrastructure/persistence/opcoes-do-banco.js';
+
+const pastaBackend = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [join(pastaBackend, '.env'), join(pastaBackend, '..', '.env.local')],
+    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'better-sqlite3',
-        database: config.get<string>('DB_STORAGE', './database.sqlite'),
-        autoLoadEntities: true,
-        synchronize: true,
-      }),
+      useFactory: (config: ConfigService) => opcoesDoBanco(config),
     }),
     OnibusModule,
     PessoasModule,

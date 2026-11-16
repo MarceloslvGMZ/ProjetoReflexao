@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { Client } from 'pg';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module.js';
 
@@ -8,10 +9,22 @@ type Servidor = Parameters<typeof request>[0];
 export const ADMIN = { usuario: 'admin', senha: 'Admin12345' };
 
 export async function criarApp(): Promise<INestApplication> {
+  await esvaziarBanco();
   const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleFixture.createNestApplication();
   await app.init();
   return app;
+}
+
+/** Cada teste parte de um banco vazio. O SQLite em memória fazia isso sozinho. */
+async function esvaziarBanco(): Promise<void> {
+  const cliente = new Client({ connectionString: process.env.DATABASE_URL });
+  await cliente.connect();
+  try {
+    await cliente.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;');
+  } finally {
+    await cliente.end();
+  }
 }
 
 export async function login(server: Servidor, credenciais: { usuario: string; senha: string }) {

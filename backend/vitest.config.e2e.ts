@@ -7,8 +7,9 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    fileParallelism: false,
     env: {
-      DB_STORAGE: ':memory:',
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/viafacil_test',
       JWT_SECRET: 'segredo-dos-testes-e2e',
       ADMIN_CPF: '12345678909',
       ADMIN_USUARIO: 'admin',

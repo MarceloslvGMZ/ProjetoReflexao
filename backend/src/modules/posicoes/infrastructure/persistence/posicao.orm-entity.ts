@@ -11,7 +11,7 @@ export class PosicaoOrmEntity {
   @Column('real')
   longitude: number;
 
-  @Column()
+  @Column({ type: 'timestamptz' })
   atualizadoEm: Date;
 
   @Column()
