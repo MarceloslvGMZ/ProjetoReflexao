@@ -1,1 +1,7 @@
-<div #superficie class="h-full w-full" role="application" aria-label="Mapa da frota"></div>
+<div
+  #superficie
+  class="h-full w-full"
+  [class.mapa-parado]="!interativo()"
+  role="application"
+  [attr.aria-label]="interativo() ? 'Mapa da frota' : 'Prévia do mapa da frota'"
+></div>

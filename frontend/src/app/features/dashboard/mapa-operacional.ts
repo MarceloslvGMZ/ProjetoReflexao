@@ -7,13 +7,15 @@ import type { TrajetoRota } from './tracado-rota';
 @Component({
   selector: 'app-mapa-operacional',
   templateUrl: './mapa-operacional.html',
-  host: { class: 'block h-full w-full bg-slate-100' },
+  host: { class: 'relative z-0 block h-full w-full bg-slate-100' },
 })
 export class MapaOperacional implements OnDestroy {
   readonly veiculos = input<readonly VeiculoMapa[]>([]);
   readonly trajetos = input<readonly TrajetoRota[]>([]);
   /** A tela cheia abre o mapa mesmo antes de chegar a primeira posição. */
   readonly iniciarVazio = input(false);
+  /** No painel o mapa só mostra a frota. Arrastar e ampliar ficam na tela cheia. */
+  readonly interativo = input(false);
 
   private readonly zona = inject(NgZone);
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
@@ -62,6 +64,7 @@ export class MapaOperacional implements OnDestroy {
     this.camada.clearLayers();
     for (const veiculo of veiculos) {
       const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
+        interactive: this.interativo(),
         icon: L.divIcon({
           className: '',
           html: '<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#14624c;border:2px solid white;box-shadow:0 0 0 1px #14624c"></span>',
@@ -73,7 +76,7 @@ export class MapaOperacional implements OnDestroy {
         direction: 'top',
         permanent: true,
         opacity: 1,
-        interactive: true,
+        interactive: this.interativo(),
         className: 'ficha-balao',
       });
       marcador.addTo(this.camada);
@@ -129,10 +132,18 @@ export class MapaOperacional implements OnDestroy {
     if (!vista && this.veiculos().length === 0 && this.trajetos().length === 0 && !this.iniciarVazio()) return null;
 
     const elemento = this.superficie().nativeElement;
+    const interativo = this.interativo();
     const mapa = L.map(elemento, {
       minZoom: 3,
       maxBounds: L.latLngBounds([-85, -180], [85, 180]),
       maxBoundsViscosity: 1,
+      dragging: interativo,
+      touchZoom: interativo,
+      scrollWheelZoom: interativo,
+      doubleClickZoom: interativo,
+      boxZoom: interativo,
+      keyboard: interativo,
+      zoomControl: interativo,
     });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
@@ -143,15 +154,17 @@ export class MapaOperacional implements OnDestroy {
     this.camadaRota.addTo(mapa);
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));
-    mapa.getContainer().addEventListener('click', (evento) => {
-      const alvo = (evento.target as Element | null)?.closest?.('[data-onibus]');
-      if (!(alvo instanceof HTMLElement)) return;
-      evento.preventDefault();
-      evento.stopPropagation();
-      const id = Number(alvo.dataset['onibus']);
-      if (!Number.isInteger(id)) return;
-      this.zona.run(() => this.alternarFicha(id));
-    });
+    if (interativo) {
+      mapa.getContainer().addEventListener('click', (evento) => {
+        const alvo = (evento.target as Element | null)?.closest?.('[data-onibus]');
+        if (!(alvo instanceof HTMLElement)) return;
+        evento.preventDefault();
+        evento.stopPropagation();
+        const id = Number(alvo.dataset['onibus']);
+        if (!Number.isInteger(id)) return;
+        this.zona.run(() => this.alternarFicha(id));
+      });
+    }
     this.observador = new ResizeObserver(() => mapa.invalidateSize());
     this.observador.observe(elemento);
 

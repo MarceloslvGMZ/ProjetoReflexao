@@ -75,6 +75,11 @@
   }
 }
 
+.leaflet-container.mapa-parado,
+.leaflet-container.mapa-parado .leaflet-interactive {
+  cursor: default;
+}
+
 .leaflet-tooltip.ficha-balao {
   padding: 0;
   background: transparent;

@@ -103,7 +103,7 @@
       [attr.aria-hidden]="menuAberto()"
     >Voltar</a>
     <div class="min-h-0 flex-1">
-      <app-mapa-operacional [veiculos]="veiculos()" [trajetos]="trajetos()" [iniciarVazio]="true" />
+      <app-mapa-operacional [veiculos]="veiculos()" [trajetos]="trajetos()" [iniciarVazio]="true" [interativo]="true" />
     </div>
     @if (erro(); as mensagem) {
       <p class="px-4 py-2 text-sm text-erro-700" role="alert">{{ mensagem }}</p>
