@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { normalizarParadas } from '../../domain/parada.js';
 import {
+  distanciaMetros,
   duracaoDeOnibus,
   trajetoEmLinhaReta,
   type PontoTrajeto,
@@ -40,13 +41,22 @@ export class ConsultarTrajetoService {
   private readonly listas = new Map<string, PontoTrajeto[]>();
   private ultimaConsulta = 0;
 
+  /** Liga coordenadas já conhecidas pelas ruas, sem geocodificar nomes. */
+  async executarPorPontos(pontos: PontoTrajeto[]): Promise<TrajetoCalculado> {
+    if (pontos.length < 2) {
+      throw new BadRequestException('Informe ao menos dois pontos para traçar a rota.');
+    }
+    return (await this.pelaVia(pontos)) ?? trajetoEmLinhaReta(pontos[0], pontos[pontos.length - 1], pontos.slice(1, -1));
+  }
+
   async executar(origem: string, destino: string, paradas: unknown = []): Promise<TrajetoCalculado> {
     const partida = await this.localizar(origem);
     const chegada = await this.localizar(destino);
     if (!partida || !chegada) {
       throw new NotFoundException(`Não foi possível localizar ${partida ? destino : origem} no mapa.`);
     }
-    const pontos = [partida, ...normalizarParadas(paradas), chegada];
+    const ida = normalizarParadas(paradas).filter((parada) => parada.sentido !== 'VOLTA');
+    const pontos = [partida, ...ida, chegada];
     return (await this.pelaVia(pontos)) ?? trajetoEmLinhaReta(partida, chegada, pontos.slice(1, -1));
   }
 
@@ -119,20 +129,60 @@ export class ConsultarTrajetoService {
   }
 
   private async pelaVia(pontos: PontoTrajeto[]): Promise<TrajetoCalculado | null> {
+    const inteiro = await this.consultarOsrm(pontos);
+    if (inteiro) return this.montarVia(pontos, inteiro.linha, inteiro.distanciaMetros, inteiro.duracaoSegundos);
+
+    // Trecho a trecho quando o roteador não aceita a sequência completa.
+    if (pontos.length < 3) return null;
+    const linha: { latitude: number; longitude: number }[] = [];
+    let distancia = 0;
+    let duracao = 0;
+    for (let indice = 1; indice < pontos.length; indice += 1) {
+      const trecho = await this.consultarOsrm([pontos[indice - 1], pontos[indice]]);
+      if (!trecho) return null;
+      if (linha.length > 0) linha.pop();
+      linha.push(...trecho.linha);
+      distancia += trecho.distanciaMetros;
+      duracao += trecho.duracaoSegundos;
+    }
+    if (linha.length < 2) return null;
+    return this.montarVia(pontos, linha, distancia, duracao);
+  }
+
+  private async consultarOsrm(
+    pontos: PontoTrajeto[],
+  ): Promise<{ linha: { latitude: number; longitude: number }[]; distanciaMetros: number; duracaoSegundos: number } | null> {
     const caminho = pontos.map((ponto) => `${ponto.longitude},${ponto.latitude}`).join(';');
     const url = `https://router.project-osrm.org/route/v1/driving/${caminho}?overview=full&geometries=geojson`;
-    const resposta = await fetch(url, { headers: { 'User-Agent': AGENTE, Accept: 'application/json' } });
-    if (!resposta.ok) return null;
-    const corpo = (await resposta.json()) as RespostaOsrm;
-    const rota = corpo.routes?.[0];
-    if (!rota || rota.geometry.coordinates.length < 2) return null;
+    try {
+      const resposta = await fetch(url, { headers: { 'User-Agent': AGENTE, Accept: 'application/json' } });
+      if (!resposta.ok) return null;
+      const corpo = (await resposta.json()) as RespostaOsrm;
+      const rota = corpo.routes?.[0];
+      if (!rota || rota.geometry.coordinates.length < 2) return null;
+      return {
+        linha: rota.geometry.coordinates.map(([longitude, latitude]) => ({ latitude, longitude })),
+        distanciaMetros: Math.round(rota.distance),
+        duracaoSegundos: duracaoDeOnibus(rota.duration),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private montarVia(
+    pontos: PontoTrajeto[],
+    linha: { latitude: number; longitude: number }[],
+    distanciaMetros: number,
+    duracaoSegundos: number,
+  ): TrajetoCalculado {
     return {
       origem: pontos[0],
       destino: pontos[pontos.length - 1],
       paradas: pontos.slice(1, -1),
-      linha: rota.geometry.coordinates.map(([longitude, latitude]) => ({ latitude, longitude })),
-      distanciaMetros: Math.round(rota.distance),
-      duracaoSegundos: duracaoDeOnibus(rota.duration),
+      linha,
+      distanciaMetros: distanciaMetros || distanciaMetrosDeLinha(pontos),
+      duracaoSegundos,
       fonte: 'via',
     };
   }
@@ -143,4 +193,12 @@ export class ConsultarTrajetoService {
     if (espera > 0) await new Promise((resolver) => setTimeout(resolver, espera));
     this.ultimaConsulta = Date.now();
   }
+}
+
+function distanciaMetrosDeLinha(pontos: readonly PontoTrajeto[]): number {
+  let total = 0;
+  for (let indice = 1; indice < pontos.length; indice += 1) {
+    total += distanciaMetros(pontos[indice - 1], pontos[indice]);
+  }
+  return total;
 }

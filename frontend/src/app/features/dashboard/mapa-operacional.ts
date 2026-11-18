@@ -3,6 +3,7 @@ import * as L from 'leaflet';
 import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
 import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
 import type { TrajetoRota } from './tracado-rota';
+import { COR_IDA, COR_VOLTA, DESLOCAMENTO_VOLTA_M, deslocarPontos } from '../../shared/trajeto-visual';
 
 @Component({
   selector: 'app-mapa-operacional',
@@ -94,7 +95,10 @@ export class MapaOperacional implements OnDestroy {
   private desenharRotas(mapa: L.Map): void {
     const trajetos = this.trajetos();
     const assinatura = trajetos
-      .map((trajeto) => `${trajeto.rotaId}:${trajeto.linha.length}:${trajeto.paradas.length}:${trajeto.duracaoSegundos}`)
+      .map(
+        (trajeto) =>
+          `${trajeto.rotaId}:${trajeto.linha.length}:${trajeto.linhaVolta?.length ?? 0}:${trajeto.duracaoSegundos}`,
+      )
       .join('|');
     if (assinatura === this.assinaturaRota) return;
     this.assinaturaRota = assinatura;
@@ -102,23 +106,8 @@ export class MapaOperacional implements OnDestroy {
     this.camadaRota.clearLayers();
     const coordenadas: L.LatLngExpression[] = [];
     for (const trajeto of trajetos) {
-      const linha = trajeto.linha.map((ponto) => [ponto.latitude, ponto.longitude] as L.LatLngExpression);
-      L.polyline(linha, { color: '#14624c', weight: 5, opacity: 0.9 }).addTo(this.camadaRota);
-      coordenadas.push(...linha);
-      const pontos = [trajeto.origem, ...trajeto.paradas, trajeto.destino];
-      pontos.forEach((parada, indice) => {
-        const marcador = L.marker([parada.latitude, parada.longitude], {
-          icon: L.divIcon({
-            className: '',
-            html: `<span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:9999px;background:#e7a11a;color:#102033;border:2px solid #102033;font-size:11px;font-weight:700">${indice + 1}</span>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-          }),
-        });
-        marcador.bindTooltip(`${indice + 1}. ${parada.nome}`, { direction: 'top' });
-        marcador.addTo(this.camadaRota);
-        coordenadas.push([parada.latitude, parada.longitude]);
-      });
+      coordenadas.push(...tracado(this.camadaRota, trajeto.linha, COR_IDA, 0));
+      coordenadas.push(...tracado(this.camadaRota, trajeto.linhaVolta ?? [], COR_VOLTA, DESLOCAMENTO_VOLTA_M));
     }
     if (coordenadas.length === 0) return;
     mapa.fitBounds(L.latLngBounds(coordenadas), { padding: [48, 48], maxZoom: 15 });
@@ -193,3 +182,20 @@ export class MapaOperacional implements OnDestroy {
     gravarVistaMapa({ latitude: centro.lat, longitude: centro.lng, zoom: mapa.getZoom() });
   }
 }
+
+function tracado(
+  camada: L.LayerGroup,
+  linha: readonly { nome?: string; latitude: number; longitude: number }[],
+  cor: string,
+  metros: number,
+): L.LatLngExpression[] {
+  const coordenadas = deslocarPontos(
+    linha.map((ponto) => ({ nome: ponto.nome ?? '', latitude: ponto.latitude, longitude: ponto.longitude })),
+    metros,
+  ).map((ponto) => [ponto.latitude, ponto.longitude] as L.LatLngExpression);
+  if (coordenadas.length >= 2) {
+    L.polyline(coordenadas, { color: cor, weight: 5, opacity: 0.9 }).addTo(camada);
+  }
+  return coordenadas;
+}
+

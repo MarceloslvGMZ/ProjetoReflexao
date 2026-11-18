@@ -107,7 +107,8 @@ function validadoresDo(campo: DescricaoCampo): PropertyDecorator[] {
       validadores.push(IsISO8601());
       break;
     case 'paradas':
-      validadores.push(IsArray(), ArrayMaxSize(20));
+      // Até 20 na ida e 20 na volta.
+      validadores.push(IsArray(), ArrayMaxSize(40));
       break;
   }
   return validadores;

@@ -4,16 +4,16 @@ import { RouterLink } from '@angular/router';
 import { interval } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { paraErroApi } from '../../core/api/erro-api';
-import type { Onibus, Rota } from '../../core/models';
+import type { Onibus, ParadaRota, Rota } from '../../core/models';
 import { SearchInput } from '../../shared/components/search-input/search-input';
 import { CLASSE_BTN_SECUNDARIO } from '../../shared/ui';
 import { MapaOperacional } from './mapa-operacional';
 import { paraVeiculos, type PosicaoFrota, type VeiculoMapa } from './posicao-frota';
 import {
-  descreverEstimativa,
   filtrarFrota,
   juntarFrota,
   type OnibusNoMapa,
+  type PontoRota,
   type TrajetoRota,
 } from './tracado-rota';
 
@@ -38,7 +38,6 @@ interface TrajetoApi {
 export class MapaTela {
   private readonly api = inject(ApiService);
   protected readonly btnSecundario = CLASSE_BTN_SECUNDARIO;
-  protected readonly descrever = descreverEstimativa;
   protected readonly veiculos = signal<readonly VeiculoMapa[]>([]);
   protected readonly erro = signal<string | null>(null);
   protected readonly consultado = signal(false);
@@ -62,10 +61,6 @@ export class MapaTela {
 
   protected alternarMenu(): void {
     this.menuAberto.update((aberto) => !aberto);
-  }
-
-  protected caminho(trajeto: TrajetoRota): string {
-    return [trajeto.origem.nome, ...trajeto.paradas.map((parada) => parada.nome), trajeto.destino.nome].join(' → ');
   }
 
   protected nomesDasRotas(veiculo: OnibusNoMapa): string {
@@ -118,12 +113,44 @@ export class MapaTela {
   }
 
   private async buscarTrajeto(rota: Rota): Promise<TrajetoRota> {
+    const paradas = rota.paradas ?? [];
+    const ida = paradas.filter((parada) => parada.sentido !== 'VOLTA');
+    const volta = paradas.filter((parada) => parada.sentido === 'VOLTA');
+    const marcadoresIda = ida.filter((parada) => parada.tipo !== 'PASSAGEM').map(paraPonto);
+    const marcadoresVolta = volta.filter((parada) => parada.tipo !== 'PASSAGEM').map(paraPonto);
     const trajeto = await this.api.get<TrajetoApi>('/rotas/trajeto', {
       origem: rota.origem,
       destino: rota.destino,
-      paradas: JSON.stringify(rota.paradas ?? []),
+      paradas: JSON.stringify(ida.map((ponto) => ({ ...paraPonto(ponto), sentido: 'IDA' }))),
     });
-    return { ...trajeto, paradas: trajeto.paradas ?? [], rotaId: rota.id, nome: rota.nome };
+    if (volta.length === 0) {
+      return {
+        ...trajeto,
+        paradas: marcadoresIda,
+        linhaVolta: [...trajeto.linha].reverse(),
+        volta: [...marcadoresIda].reverse(),
+        voltaEspelhada: true,
+        rotaId: rota.id,
+        nome: rota.nome,
+      };
+    }
+    const retorno = await this.api.get<TrajetoApi>('/rotas/trajeto', {
+      origem: rota.destino,
+      destino: rota.origem,
+      paradas: JSON.stringify(volta.map((ponto) => ({ ...paraPonto(ponto), sentido: 'IDA' }))),
+    });
+    return {
+      ...trajeto,
+      paradas: marcadoresIda,
+      linhaVolta: retorno.linha,
+      volta: marcadoresVolta,
+      voltaEspelhada: false,
+      duracaoVoltaSegundos: retorno.duracaoSegundos,
+      distanciaVoltaMetros: retorno.distanciaMetros,
+      fonteVolta: retorno.fonte,
+      rotaId: rota.id,
+      nome: rota.nome,
+    };
   }
 
   private async atualizar(): Promise<void> {
@@ -137,4 +164,8 @@ export class MapaTela {
       this.consultado.set(true);
     }
   }
+}
+
+function paraPonto(parada: ParadaRota): PontoRota {
+  return { nome: parada.nome, latitude: parada.latitude, longitude: parada.longitude };
 }

@@ -5,6 +5,10 @@ export interface ParadaRota {
   nome: string;
   latitude: number;
   longitude: number;
+  /** Ausente nas rotas antigas: tratado como ida. */
+  sentido?: 'IDA' | 'VOLTA';
+  /** PASSAGEM só força a rua; não é ponto de embarque. Ausente = PARADA. */
+  tipo?: 'PARADA' | 'PASSAGEM';
 }
 
 export interface Rota {

@@ -19,6 +19,7 @@ import { CriarRotaUseCase } from '../../use-cases/criar-rota.use-case.js';
 import { ListarRotasUseCase } from '../../use-cases/listar-rotas.use-case.js';
 import { RemoverRotaUseCase } from '../../use-cases/remover-rota.use-case.js';
 import { normalizarParadas } from '../../domain/parada.js';
+import type { PontoTrajeto } from '../../domain/trajeto.js';
 import { ConsultarTrajetoService } from './consultar-trajeto.service.js';
 import { RotaDto } from './rota.dto.js';
 
@@ -65,7 +66,9 @@ export class RotasController {
     @Query('origem') origem?: string,
     @Query('destino') destino?: string,
     @Query('paradas') paradas?: string,
+    @Query('pontos') pontos?: string,
   ) {
+    if (pontos?.trim()) return this.trajetos.executarPorPontos(this.lerPontos(pontos));
     if (!origem?.trim() || !destino?.trim()) {
       throw new BadRequestException('Informe a origem e o destino da rota.');
     }
@@ -88,6 +91,29 @@ export class RotasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remover(@Param('id', ParseIntPipe) id: number) {
     return this.removerRota.executar(id);
+  }
+
+  private lerPontos(bruto: string): PontoTrajeto[] {
+    let lista: unknown;
+    try {
+      lista = JSON.parse(bruto);
+    } catch {
+      throw new BadRequestException('Pontos em formato inválido.');
+    }
+    if (!Array.isArray(lista) || lista.length < 2 || lista.length > 40) {
+      throw new BadRequestException('Informe de 2 a 40 pontos para traçar a rota.');
+    }
+    return lista.map((item) => {
+      if (!item || typeof item !== 'object') throw new BadRequestException('Ponto inválido.');
+      const ponto = item as { nome?: unknown; latitude?: unknown; longitude?: unknown };
+      const latitude = Number(ponto.latitude);
+      const longitude = Number(ponto.longitude);
+      const nome = typeof ponto.nome === 'string' ? ponto.nome.trim() : '';
+      if (!nome || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        throw new BadRequestException('Ponto inválido.');
+      }
+      return { nome, latitude, longitude };
+    });
   }
 
   private lerParadas(bruto?: string): unknown {

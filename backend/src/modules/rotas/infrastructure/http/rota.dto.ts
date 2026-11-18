@@ -16,7 +16,7 @@ export class RotaDto {
     rotulo: 'Paradas',
     opcional: true,
     tipo: 'paradas',
-    ajuda: 'Marque os locais do percurso, na ordem. A rota passa por eles em vez de ir pelo caminho mais curto.',
+    ajuda: 'Abra o mapa para marcar paradas e pontos de passagem na ordem. A passagem só força a rua usada pelo ônibus.',
   })
   paradas?: Parada[];
 

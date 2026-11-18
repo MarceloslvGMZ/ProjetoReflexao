@@ -31,7 +31,7 @@ describe('Rota', () => {
         ...dados,
         paradas: [{ nome: ' UEG ', latitude: -16.3, longitude: -48.9 }],
       }).paradas,
-    ).toEqual([{ nome: 'UEG', latitude: -16.3, longitude: -48.9 }]);
+    ).toEqual([{ nome: 'UEG', latitude: -16.3, longitude: -48.9, sentido: 'IDA', tipo: 'PARADA' }]);
   });
 
   it.each([

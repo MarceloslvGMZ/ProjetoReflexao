@@ -21,9 +21,17 @@ export interface TrajetoRota {
   destino: PontoRota;
   paradas: readonly PontoRota[];
   linha: readonly PontoRota[];
+  /** Caminho da volta pelas vias. Vazio quando ainda não há traçado. */
+  linhaVolta: readonly PontoRota[];
   distanciaMetros: number;
   duracaoSegundos: number;
   fonte: 'via' | 'reta';
+  /** Pontos próprios da volta. Vazio com voltaEspelhada significa ida ao contrário. */
+  volta?: readonly PontoRota[];
+  voltaEspelhada?: boolean;
+  duracaoVoltaSegundos?: number;
+  distanciaVoltaMetros?: number;
+  fonteVolta?: 'via' | 'reta';
 }
 
 export function juntarFrota(onibus: readonly Onibus[], rotas: readonly Rota[]): OnibusNoMapa[] {

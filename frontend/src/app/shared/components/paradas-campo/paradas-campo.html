@@ -1,58 +1,165 @@
-<ol class="space-y-2" aria-label="Paradas na ordem do percurso">
-  @for (parada of paradas(); track $index) {
-    <li class="flex items-center gap-2">
-      <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sinal text-xs font-bold text-tinta">{{ $index + 1 }}</span>
-      <input
-        [class]="campo"
-        [value]="parada.nome"
-        [attr.aria-label]="'Nome da parada ' + ($index + 1)"
-        (change)="renomear($index, $event)"
-      />
-      <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === 0" (click)="mover($index, -1)">Subir</button>
-      <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === paradas().length - 1" (click)="mover($index, 1)">Descer</button>
-      <button type="button" class="text-xs font-medium text-erro-700 hover:underline" (click)="remover($index)">Remover</button>
-    </li>
-  } @empty {
-    <li class="text-sm text-slate-500">Nenhuma parada. A rota segue direto da origem ao destino.</li>
-  }
-</ol>
-
-<div class="flex gap-2">
-  <input
-    type="search"
-    [id]="idCampo()"
-    [class]="campo"
-    [value]="consulta()"
-    placeholder="Ex.: UEG Anápolis"
-    [attr.aria-label]="'Local da parada'"
-    (input)="consulta.set($any($event.target).value)"
-    (keydown.enter)="$event.preventDefault(); localizar()"
-  />
-  <button type="button" [class]="botao" [disabled]="buscando()" (click)="localizar()">
-    {{ buscando() ? 'Buscando…' : 'Localizar' }}
+<div class="rounded-xl border border-stone-200 bg-stone-50 px-3 py-3">
+  <p class="text-sm text-slate-700">{{ resumo() }}</p>
+  <p class="mt-1 text-xs text-slate-500">
+    O mapa abre em tela cheia. Use passagem para forçar a rua que o ônibus realmente usa.
+  </p>
+  <button type="button" class="mt-3" [class]="botaoPrimario" [disabled]="controle().disabled" (click)="abrirMapa()">
+    Abrir mapa da rota
   </button>
 </div>
 
-@if (sugestoes().length) {
-  <ul class="overflow-hidden rounded-xl border border-stone-200" aria-label="Locais encontrados">
-    @for (lugar of sugestoes(); track lugar.latitude + lugar.longitude) {
-      <li class="border-b border-stone-100 last:border-b-0">
-        <button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-primaria-50" (click)="adicionar(lugar)">
-          {{ lugar.nome }}
-        </button>
-      </li>
-    }
-  </ul>
-}
+@if (expandido()) {
+  <div class="fixed inset-0 z-[1400] flex flex-col bg-papel-cartao md:flex-row" role="dialog" aria-modal="true" aria-label="Editar pontos da rota">
+    <div
+      class="transicao-suave grid w-full shrink-0 overflow-hidden border-stone-200 md:h-full md:grid-rows-[1fr]"
+      [class.grid-rows-[1fr]]="menuAberto()"
+      [class.grid-rows-[0fr]]="!menuAberto()"
+      [class.md:w-80]="menuAberto()"
+      [class.md:w-0]="!menuAberto()"
+      [class.border-b]="menuAberto()"
+      [class.md:border-r]="menuAberto()"
+      [attr.inert]="menuAberto() ? null : ''"
+    >
+      <div class="min-h-0 overflow-hidden">
+        <aside class="flex max-h-[55dvh] min-h-0 w-full flex-col gap-3 overflow-hidden p-4 md:h-full md:max-h-none md:w-80">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-display text-lg font-extrabold tracking-tight text-tinta">Pontos da rota</h3>
+              <p class="text-xs text-slate-500">Parada = aluno. Passagem = só força a rua.</p>
+            </div>
+            <button type="button" [class]="botaoSecundario" (click)="fecharMapa()">Concluir</button>
+          </div>
 
-<div #superficie class="h-56 overflow-hidden rounded-xl border border-stone-200" role="application" aria-label="Mapa para marcar paradas"></div>
-<p class="text-xs text-slate-500">
-  @if (marcando()) {
-    Marcando o ponto…
-  } @else {
-    Escolha um local da busca ou clique no mapa para marcar a próxima parada.
-  }
-</p>
-@if (aviso(); as mensagem) {
-  <p class="text-sm text-erro-700" role="alert">{{ mensagem }}</p>
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Sentido">
+            <button type="button" class="rounded-xl px-3 py-2 text-sm font-semibold" [class]="sentido() === 'IDA' ? 'bg-tinta text-white' : 'border border-stone-300 bg-white text-slate-700'" [attr.aria-pressed]="sentido() === 'IDA'" (click)="escolherSentido('IDA')">Ida</button>
+            <button type="button" class="rounded-xl px-3 py-2 text-sm font-semibold" [class]="sentido() === 'VOLTA' ? 'bg-tinta text-white' : 'border border-stone-300 bg-white text-slate-700'" [attr.aria-pressed]="sentido() === 'VOLTA'" (click)="escolherSentido('VOLTA')">Volta</button>
+          </div>
+
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo do próximo ponto">
+            <button type="button" class="rounded-xl px-3 py-2 text-sm font-semibold" [class]="tipo() === 'PARADA' ? 'bg-primaria-600 text-white' : 'border border-stone-300 bg-white text-slate-700'" [attr.aria-pressed]="tipo() === 'PARADA'" (click)="escolherTipo('PARADA')">Parada</button>
+            <button type="button" class="rounded-xl px-3 py-2 text-sm font-semibold" [class]="tipo() === 'PASSAGEM' ? 'bg-primaria-600 text-white' : 'border border-stone-300 bg-white text-slate-700'" [attr.aria-pressed]="tipo() === 'PASSAGEM'" (click)="escolherTipo('PASSAGEM')">Passagem</button>
+          </div>
+
+          <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
+            <section class="space-y-2" aria-label="Pontos da ida">
+              <h4 class="text-sm font-semibold text-tinta">Ida</h4>
+              <ol class="space-y-2">
+                @for (parada of ida(); track $index) {
+                  <li class="flex items-center gap-2">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" [style.background]="parada.tipo === 'PASSAGEM' ? 'white' : corIda" [style.color]="parada.tipo === 'PASSAGEM' ? corIda : 'white'" [style.border]="'2px solid ' + corIda">{{ $index + 1 }}</span>
+                    <div class="min-w-0 flex-1">
+                      <input [class]="campo" [value]="parada.nome" [attr.aria-label]="'Nome do ponto ' + ($index + 1) + ' da ida'" (change)="renomear('IDA', $index, $event)" />
+                      <span class="text-[10px] font-medium text-slate-500">{{ rotuloTipo(parada) }}</span>
+                    </div>
+                    <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === 0" (click)="mover('IDA', $index, -1)">Subir</button>
+                    <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === ida().length - 1" (click)="mover('IDA', $index, 1)">Descer</button>
+                    <button type="button" class="text-xs font-medium text-erro-700 hover:underline" (click)="remover('IDA', $index)">Remover</button>
+                  </li>
+                } @empty {
+                  <li class="text-sm text-slate-500">Nenhum ponto na ida.</li>
+                }
+              </ol>
+            </section>
+
+            <section class="space-y-2" aria-label="Pontos da volta">
+              <h4 class="text-sm font-semibold text-tinta">Volta</h4>
+              <ol class="space-y-2">
+                @for (parada of volta(); track $index) {
+                  <li class="flex items-center gap-2">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" [style.background]="parada.tipo === 'PASSAGEM' ? 'white' : corVolta" [style.color]="parada.tipo === 'PASSAGEM' ? corVolta : 'white'" [style.border]="'2px solid ' + corVolta">{{ $index + 1 }}</span>
+                    <div class="min-w-0 flex-1">
+                      <input [class]="campo" [value]="parada.nome" [attr.aria-label]="'Nome do ponto ' + ($index + 1) + ' da volta'" (change)="renomear('VOLTA', $index, $event)" />
+                      <span class="text-[10px] font-medium text-slate-500">{{ rotuloTipo(parada) }}</span>
+                    </div>
+                    <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === 0" (click)="mover('VOLTA', $index, -1)">Subir</button>
+                    <button type="button" class="text-xs font-medium text-slate-600 hover:text-tinta disabled:opacity-40" [disabled]="$index === volta().length - 1" (click)="mover('VOLTA', $index, 1)">Descer</button>
+                    <button type="button" class="text-xs font-medium text-erro-700 hover:underline" (click)="remover('VOLTA', $index)">Remover</button>
+                  </li>
+                } @empty {
+                  <li class="text-sm text-slate-500">Sem pontos próprios: volta espelha a ida.</li>
+                }
+              </ol>
+            </section>
+          </div>
+
+          <div class="flex gap-2">
+            <input
+              type="search"
+              [id]="idCampo()"
+              [class]="campo"
+              [value]="consulta()"
+              placeholder="Ex.: UEG Anápolis"
+              [attr.aria-label]="'Local do ponto'"
+              (input)="consulta.set($any($event.target).value)"
+              (keydown.enter)="$event.preventDefault(); localizar()"
+            />
+            <button type="button" [class]="botao" [disabled]="buscando()" (click)="localizar()">
+              {{ buscando() ? 'Buscando…' : 'Localizar' }}
+            </button>
+          </div>
+
+          @if (sugestoes().length) {
+            <ul class="max-h-28 overflow-y-auto rounded-xl border border-stone-200" aria-label="Locais encontrados">
+              @for (lugar of sugestoes(); track lugar.latitude + lugar.longitude) {
+                <li class="border-b border-stone-100 last:border-b-0">
+                  <button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-primaria-50" (click)="adicionar(lugar)">
+                    {{ lugar.nome }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (calculando()) {
+            <p class="text-xs text-slate-500" role="status">Traçando o caminho pelas ruas…</p>
+          } @else if (aviso(); as mensagem) {
+            <p class="text-xs text-erro-700" role="alert">{{ mensagem }}</p>
+          } @else {
+            <p class="text-xs text-slate-500">Clique no mapa para marcar o próximo {{ tipo() === 'PASSAGEM' ? 'ponto de passagem' : 'ponto de parada' }} da {{ sentido() === 'IDA' ? 'ida' : 'volta' }}.</p>
+          }
+        </aside>
+      </div>
+    </div>
+
+    <div class="relative z-[1100] h-0 w-full shrink-0 md:h-auto md:w-0 md:self-stretch">
+      <button
+        type="button"
+        class="transicao-suave absolute flex size-9 items-center justify-center rounded-full border border-stone-300 bg-papel-cartao text-tinta shadow-md hover:bg-stone-50"
+        [class]="menuAberto() ? 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-1/2 md:left-0' : 'top-4 left-1/2 -translate-x-1/2 md:top-1/2 md:left-3 md:translate-x-0 md:-translate-y-1/2'"
+        [attr.aria-expanded]="menuAberto()"
+        [attr.aria-label]="menuAberto() ? 'Recolher o menu de pontos' : 'Mostrar o menu de pontos'"
+        (click)="alternarMenu()"
+      >
+        <svg
+          viewBox="0 0 20 20"
+          class="transicao-suave size-4"
+          [class.rotate-90]="menuAberto()"
+          [class.-rotate-90]="!menuAberto()"
+          [class.md:rotate-0]="menuAberto()"
+          [class.md:rotate-180]="!menuAberto()"
+          aria-hidden="true"
+        >
+          <path d="M12 4 L6 10 L12 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="relative min-h-0 min-w-0 flex-1">
+      <div #superficie class="relative z-0 h-full min-h-[40dvh] w-full" role="application" aria-label="Mapa para marcar a rota"></div>
+      <p class="pointer-events-none absolute bottom-3 left-3 z-[500] flex flex-wrap gap-3 rounded-xl bg-papel-cartao/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-sm">
+        <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full" [style.background]="corIda"></span> Ida</span>
+        <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full" [style.background]="corVolta"></span> Volta</span>
+        <span class="text-slate-500">Cheio = parada · Vazio = passagem</span>
+      </p>
+      <button
+        type="button"
+        class="absolute top-3 right-3 z-[1100]"
+        [class]="botaoSecundario"
+        [class.pointer-events-none]="menuAberto()"
+        [class.opacity-0]="menuAberto()"
+        [attr.aria-hidden]="menuAberto()"
+        (click)="fecharMapa()"
+      >Concluir</button>
+    </div>
+  </div>
 }
