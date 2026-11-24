@@ -1,9 +1,22 @@
-import { afterNextRender, Component, effect, ElementRef, inject, input, NgZone, OnDestroy, signal, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  NgZone,
+  OnDestroy,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import * as L from 'leaflet';
+import { COR_IDA, COR_VOLTA, DESLOCAMENTO_VOLTA_M, deslocarPontos } from '../../shared/trajeto-visual';
+import { DURACAO_ANIMACAO_MS, interpolar } from './marcador-animacao';
 import { gravarVistaMapa, lerVistaMapa } from './mapa-vista';
 import { fichaDoVeiculo, type VeiculoMapa } from './posicao-frota';
 import type { TrajetoRota } from './tracado-rota';
-import { COR_IDA, COR_VOLTA, DESLOCAMENTO_VOLTA_M, deslocarPontos } from '../../shared/trajeto-visual';
 
 @Component({
   selector: 'app-mapa-operacional',
@@ -19,6 +32,8 @@ export class MapaOperacional implements OnDestroy {
   readonly iniciarVazio = input(false);
   /** No painel o mapa só mostra a frota. Arrastar e ampliar ficam na tela cheia. */
   readonly interativo = input(false);
+  /** Usuário arrastou o mapa enquanto o acompanhamento estava ativo. */
+  readonly seguirInterrompido = output<void>();
 
   private readonly zona = inject(NgZone);
   private readonly superficie = viewChild.required<ElementRef<HTMLElement>>('superficie');
@@ -26,11 +41,14 @@ export class MapaOperacional implements OnDestroy {
   private mapa: L.Map | null = null;
   private readonly camada = L.layerGroup();
   private readonly camadaRota = L.layerGroup();
+  private readonly marcadores = new Map<number, L.Marker>();
+  private readonly animacoes = new Map<number, number>();
   private observador: ResizeObserver | null = null;
   /** Já existe um enquadramento persistido; novas posições não movem a câmera. */
   private enquadrou = false;
-  private assinatura = '';
+  private assinaturaFichas = '';
   private assinaturaRota = '';
+  private ultimoSeguirId: number | null = null;
 
   constructor() {
     afterNextRender(() => this.desenhar());
@@ -45,6 +63,7 @@ export class MapaOperacional implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    for (const id of this.animacoes.keys()) this.cancelarAnimacao(id);
     this.observador?.disconnect();
     this.mapa?.remove();
   }
@@ -59,13 +78,18 @@ export class MapaOperacional implements OnDestroy {
   private desenharVeiculos(mapa: L.Map): void {
     const veiculos = this.veiculos().filter((veiculo) => !veiculo.desatualizada);
     const abertas = this.fichasAbertas();
-    const assinatura = veiculos
-      .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.atualizadoEm}:${abertas.has(veiculo.id)}`)
-      .join('|');
-    if (assinatura !== this.assinatura) {
-      this.assinatura = assinatura;
-      this.camada.clearLayers();
-      for (const veiculo of veiculos) {
+    const presentes = new Set(veiculos.map((veiculo) => veiculo.id));
+
+    for (const [id, marcador] of this.marcadores) {
+      if (presentes.has(id)) continue;
+      this.cancelarAnimacao(id);
+      marcador.remove();
+      this.marcadores.delete(id);
+    }
+
+    for (const veiculo of veiculos) {
+      const existente = this.marcadores.get(veiculo.id);
+      if (!existente) {
         const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
           interactive: this.interativo(),
           icon: L.divIcon({
@@ -83,6 +107,32 @@ export class MapaOperacional implements OnDestroy {
           className: 'ficha-balao',
         });
         marcador.addTo(this.camada);
+        this.marcadores.set(veiculo.id, marcador);
+        continue;
+      }
+
+      const atual = existente.getLatLng();
+      const mudou =
+        Math.abs(atual.lat - veiculo.latitude) > 1e-7 || Math.abs(atual.lng - veiculo.longitude) > 1e-7;
+      if (mudou) {
+        this.animarMarcador(existente, veiculo.id, {
+          latitude: atual.lat,
+          longitude: atual.lng,
+        }, {
+          latitude: veiculo.latitude,
+          longitude: veiculo.longitude,
+        });
+      }
+    }
+
+    const assinaturaFichas = veiculos
+      .map((veiculo) => `${veiculo.id}:${abertas.has(veiculo.id)}:${veiculo.rota}:${veiculo.motorista}`)
+      .join('|');
+    if (assinaturaFichas !== this.assinaturaFichas) {
+      this.assinaturaFichas = assinaturaFichas;
+      for (const veiculo of veiculos) {
+        const marcador = this.marcadores.get(veiculo.id);
+        marcador?.setTooltipContent(fichaDoVeiculo(veiculo, abertas.has(veiculo.id)));
       }
     }
 
@@ -90,10 +140,17 @@ export class MapaOperacional implements OnDestroy {
     if (seguir !== null) {
       const alvo = veiculos.find((veiculo) => veiculo.id === seguir);
       if (alvo) {
-        mapa.panTo([alvo.latitude, alvo.longitude], { animate: true });
+        const acabouDeAtivar = this.ultimoSeguirId !== seguir;
+        this.ultimoSeguirId = seguir;
+        mapa.panTo([alvo.latitude, alvo.longitude], {
+          animate: !acabouDeAtivar,
+          duration: 0.6,
+        });
         this.enquadrou = true;
         return;
       }
+    } else {
+      this.ultimoSeguirId = null;
     }
 
     if (this.trajetos().length > 0 || veiculos.length === 0 || this.enquadrou) return;
@@ -103,6 +160,35 @@ export class MapaOperacional implements OnDestroy {
     });
     this.enquadrou = true;
     this.lembrar(mapa);
+  }
+
+  private animarMarcador(
+    marcador: L.Marker,
+    id: number,
+    de: { latitude: number; longitude: number },
+    para: { latitude: number; longitude: number },
+  ): void {
+    this.cancelarAnimacao(id);
+    const inicio = performance.now();
+    const passo = (agora: number) => {
+      const progresso = (agora - inicio) / DURACAO_ANIMACAO_MS;
+      const ponto = interpolar(de, para, progresso);
+      marcador.setLatLng([ponto.latitude, ponto.longitude]);
+      if (progresso < 1) {
+        this.animacoes.set(id, requestAnimationFrame(passo));
+        return;
+      }
+      this.animacoes.delete(id);
+      marcador.setLatLng([para.latitude, para.longitude]);
+    };
+    this.animacoes.set(id, requestAnimationFrame(passo));
+  }
+
+  private cancelarAnimacao(id: number): void {
+    const quadro = this.animacoes.get(id);
+    if (quadro === undefined) return;
+    cancelAnimationFrame(quadro);
+    this.animacoes.delete(id);
   }
 
   private desenharRotas(mapa: L.Map): void {
@@ -158,6 +244,10 @@ export class MapaOperacional implements OnDestroy {
     this.camada.addTo(mapa);
     mapa.on('moveend', () => this.lembrar(mapa));
     if (interativo) {
+      mapa.on('dragstart', () => {
+        if (this.seguirId() === null) return;
+        this.zona.run(() => this.seguirInterrompido.emit());
+      });
       mapa.getContainer().addEventListener('click', (evento) => {
         const alvo = (evento.target as Element | null)?.closest?.('[data-onibus]');
         if (!(alvo instanceof HTMLElement)) return;
@@ -212,4 +302,3 @@ function tracado(
   }
   return coordenadas;
 }
-

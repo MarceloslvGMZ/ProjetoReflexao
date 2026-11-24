@@ -34,7 +34,7 @@ export function paraVeiculos(posicoes: readonly PosicaoFrota[]): VeiculoMapa[] {
       modelo: posicao.modelo ?? '',
       rota: posicao.rota ?? 'Sem rota ativa',
       motorista: posicao.motorista ?? 'Sem motorista na rota',
-      atualizadoEm: new Date(posicao.atualizadoEm).toLocaleString('pt-BR'),
+      atualizadoEm: posicao.atualizadoEm,
       latitude: posicao.latitude,
       longitude: posicao.longitude,
       desatualizada: false,

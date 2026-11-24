@@ -8,9 +8,11 @@ import type { Onibus, ParadaRota, Rota } from '../../core/models';
 import { PosicoesRealtimeService } from '../../core/realtime/posicoes-realtime.service';
 import { SearchInput } from '../../shared/components/search-input/search-input';
 import { CLASSE_BTN_PRIMARIO, CLASSE_BTN_SECUNDARIO } from '../../shared/ui';
+import { textoAtualizadoHa } from './marcador-animacao';
 import { MapaOperacional } from './mapa-operacional';
-import { paraVeiculos, type PosicaoFrota, type VeiculoMapa } from './posicao-frota';
+import { paraVeiculos, type PosicaoFrota } from './posicao-frota';
 import {
+  descreverEstimativa,
   filtrarFrota,
   juntarFrota,
   type OnibusNoMapa,
@@ -49,11 +51,13 @@ export class MapaTela {
   protected readonly termo = signal('');
   protected readonly escolhido = signal<number | null>(null);
   protected readonly acompanhando = signal(false);
+  protected readonly acompanhamentoPausado = signal(false);
   protected readonly trajetos = signal<readonly TrajetoRota[]>([]);
   protected readonly carregandoTrajeto = signal(false);
   protected readonly erroTrajeto = signal<string | null>(null);
   protected readonly menuAberto = signal(true);
   private readonly frota = signal<readonly OnibusNoMapa[]>([]);
+  private readonly agora = signal(Date.now());
 
   protected readonly filtrados = computed(() => filtrarFrota(this.frota(), this.termo()));
   protected readonly podeAcompanhar = computed(() => {
@@ -61,11 +65,31 @@ export class MapaTela {
     return id !== null && this.veiculos().some((veiculo) => veiculo.id === id);
   });
   protected readonly seguirId = computed(() => (this.acompanhando() ? this.escolhido() : null));
+  protected readonly veiculoEscolhido = computed(() => {
+    const id = this.escolhido();
+    return id === null ? null : (this.veiculos().find((veiculo) => veiculo.id === id) ?? null);
+  });
+  protected readonly statusMapa = computed(() => {
+    const veiculo = this.veiculoEscolhido();
+    const trajeto = this.trajetos()[0] ?? null;
+    if (!veiculo && !trajeto) return null;
+    return {
+      placa: veiculo?.placa ?? null,
+      rota: trajeto?.nome ?? veiculo?.rota ?? null,
+      estimativa: trajeto ? descreverEstimativa(trajeto) : null,
+      atualizado: veiculo ? textoAtualizadoHa(veiculo.atualizadoEm, this.agora()) : null,
+      acompanhando: this.acompanhando(),
+      pausado: this.acompanhamentoPausado(),
+    };
+  });
 
   constructor() {
     void this.carregarFrota();
     void this.atualizar();
     this.ligarTempoReal();
+    interval(1000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.agora.set(Date.now()));
     interval(INTERVALO_CONSULTA_MS)
       .pipe(
         filter(() => !this.tempoReal.conectado()),
@@ -97,8 +121,12 @@ export class MapaTela {
     this.posicoes.set(lista);
     const veiculos = paraVeiculos(lista);
     const seguido = this.escolhido();
-    if (this.acompanhando() && (seguido === null || !veiculos.some((veiculo) => veiculo.id === seguido))) {
+    if (
+      (this.acompanhando() || this.acompanhamentoPausado()) &&
+      (seguido === null || !veiculos.some((veiculo) => veiculo.id === seguido))
+    ) {
       this.acompanhando.set(false);
+      this.acompanhamentoPausado.set(false);
     }
     this.erro.set(null);
     this.consultado.set(true);
@@ -116,21 +144,42 @@ export class MapaTela {
     if (this.escolhido() === id) {
       this.escolhido.set(null);
       this.acompanhando.set(false);
+      this.acompanhamentoPausado.set(false);
       this.trajetos.set([]);
       this.erroTrajeto.set(null);
       return;
     }
     this.escolhido.set(id);
     this.acompanhando.set(false);
+    this.acompanhamentoPausado.set(false);
     void this.carregarTrajeto(id);
   }
 
   protected alternarAcompanhar(): void {
     if (!this.podeAcompanhar()) {
       this.acompanhando.set(false);
+      this.acompanhamentoPausado.set(false);
       return;
     }
-    this.acompanhando.update((ativo) => !ativo);
+    if (this.acompanhando()) {
+      this.acompanhando.set(false);
+      this.acompanhamentoPausado.set(false);
+      return;
+    }
+    this.acompanhamentoPausado.set(false);
+    this.acompanhando.set(true);
+  }
+
+  protected retomarAcompanhar(): void {
+    if (!this.podeAcompanhar()) return;
+    this.acompanhamentoPausado.set(false);
+    this.acompanhando.set(true);
+  }
+
+  protected aoInterromperSeguir(): void {
+    if (!this.acompanhando()) return;
+    this.acompanhando.set(false);
+    this.acompanhamentoPausado.set(true);
   }
 
   private async carregarFrota(): Promise<void> {

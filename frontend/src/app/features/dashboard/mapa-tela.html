@@ -61,7 +61,7 @@
         [attr.aria-pressed]="acompanhando()"
         (click)="alternarAcompanhar()"
       >
-        {{ acompanhando() ? 'Parar de acompanhar' : 'Acompanhar no mapa' }}
+        {{ acompanhando() ? 'Parar de acompanhar' : acompanhamentoPausado() ? 'Retomar acompanhamento' : 'Acompanhar no mapa' }}
       </button>
     } @else if (escolhido() !== null) {
       <p class="text-xs text-slate-500">Para acompanhar, o ônibus precisa estar compartilhando a localização.</p>
@@ -115,8 +115,42 @@
         [seguirId]="seguirId()"
         [iniciarVazio]="true"
         [interativo]="true"
+        (seguirInterrompido)="aoInterromperSeguir()"
       />
-      @if (trajetos().length) {
+
+      @if (statusMapa(); as status) {
+        <div class="pointer-events-none absolute bottom-3 left-3 right-3 z-[1100] flex flex-col gap-2 sm:right-auto sm:max-w-md">
+          <div class="rounded-xl bg-papel-cartao/95 px-3 py-2 text-xs text-slate-700 shadow-sm">
+            @if (status.placa || status.rota) {
+              <p class="font-semibold text-tinta">
+                @if (status.placa) { {{ status.placa }} }
+                @if (status.placa && status.rota) { · }
+                @if (status.rota) { {{ status.rota }} }
+              </p>
+            }
+            @if (status.estimativa) {
+              <p class="mt-0.5 text-slate-600">Estimativa ida: {{ status.estimativa }}</p>
+            }
+            @if (status.atualizado) {
+              <p class="mt-0.5 text-slate-500">Atualizado {{ status.atualizado }}</p>
+            }
+            @if (status.acompanhando) {
+              <p class="mt-0.5 font-medium text-primaria-700">Acompanhando no mapa</p>
+            } @else if (status.pausado) {
+              <div class="pointer-events-auto mt-2 flex items-center gap-2">
+                <p class="text-slate-600">Acompanhamento pausado ao mover o mapa.</p>
+                <button type="button" class="shrink-0" [class]="btnPrimario" (click)="retomarAcompanhar()">Retomar</button>
+              </div>
+            }
+            @if (trajetos().length) {
+              <p class="mt-2 flex flex-wrap gap-3 font-medium">
+                <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full bg-[#15803d]"></span> Ida</span>
+                <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full bg-[#1d4ed8]"></span> Volta</span>
+              </p>
+            }
+          </div>
+        </div>
+      } @else if (trajetos().length) {
         <p class="pointer-events-none absolute bottom-3 left-3 z-[1100] flex gap-3 rounded-xl bg-papel-cartao/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-sm">
           <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full bg-[#15803d]"></span> Ida</span>
           <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full bg-[#1d4ed8]"></span> Volta</span>
