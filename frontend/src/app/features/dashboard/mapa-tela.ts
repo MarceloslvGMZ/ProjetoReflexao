@@ -6,7 +6,7 @@ import { ApiService } from '../../core/api/api.service';
 import { paraErroApi } from '../../core/api/erro-api';
 import type { Onibus, ParadaRota, Rota } from '../../core/models';
 import { SearchInput } from '../../shared/components/search-input/search-input';
-import { CLASSE_BTN_SECUNDARIO } from '../../shared/ui';
+import { CLASSE_BTN_PRIMARIO, CLASSE_BTN_SECUNDARIO } from '../../shared/ui';
 import { MapaOperacional } from './mapa-operacional';
 import { paraVeiculos, type PosicaoFrota, type VeiculoMapa } from './posicao-frota';
 import {
@@ -38,11 +38,13 @@ interface TrajetoApi {
 export class MapaTela {
   private readonly api = inject(ApiService);
   protected readonly btnSecundario = CLASSE_BTN_SECUNDARIO;
+  protected readonly btnPrimario = CLASSE_BTN_PRIMARIO;
   protected readonly veiculos = signal<readonly VeiculoMapa[]>([]);
   protected readonly erro = signal<string | null>(null);
   protected readonly consultado = signal(false);
   protected readonly termo = signal('');
   protected readonly escolhido = signal<number | null>(null);
+  protected readonly acompanhando = signal(false);
   protected readonly trajetos = signal<readonly TrajetoRota[]>([]);
   protected readonly carregandoTrajeto = signal(false);
   protected readonly erroTrajeto = signal<string | null>(null);
@@ -50,6 +52,11 @@ export class MapaTela {
   private readonly frota = signal<readonly OnibusNoMapa[]>([]);
 
   protected readonly filtrados = computed(() => filtrarFrota(this.frota(), this.termo()));
+  protected readonly podeAcompanhar = computed(() => {
+    const id = this.escolhido();
+    return id !== null && this.veiculos().some((veiculo) => veiculo.id === id);
+  });
+  protected readonly seguirId = computed(() => (this.acompanhando() ? this.escolhido() : null));
 
   constructor() {
     void this.carregarFrota();
@@ -70,12 +77,22 @@ export class MapaTela {
   protected escolher(id: number): void {
     if (this.escolhido() === id) {
       this.escolhido.set(null);
+      this.acompanhando.set(false);
       this.trajetos.set([]);
       this.erroTrajeto.set(null);
       return;
     }
     this.escolhido.set(id);
+    this.acompanhando.set(false);
     void this.carregarTrajeto(id);
+  }
+
+  protected alternarAcompanhar(): void {
+    if (!this.podeAcompanhar()) {
+      this.acompanhando.set(false);
+      return;
+    }
+    this.acompanhando.update((ativo) => !ativo);
   }
 
   private async carregarFrota(): Promise<void> {
@@ -156,7 +173,12 @@ export class MapaTela {
   private async atualizar(): Promise<void> {
     try {
       const lista = await this.api.get<PosicaoFrota[]>('/posicoes');
-      this.veiculos.set(paraVeiculos(lista));
+      const veiculos = paraVeiculos(lista);
+      this.veiculos.set(veiculos);
+      const seguido = this.escolhido();
+      if (this.acompanhando() && (seguido === null || !veiculos.some((veiculo) => veiculo.id === seguido))) {
+        this.acompanhando.set(false);
+      }
       this.erro.set(null);
     } catch (falha) {
       this.erro.set(paraErroApi(falha).mensagens.join(' '));

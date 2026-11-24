@@ -13,6 +13,8 @@ import { COR_IDA, COR_VOLTA, DESLOCAMENTO_VOLTA_M, deslocarPontos } from '../../
 export class MapaOperacional implements OnDestroy {
   readonly veiculos = input<readonly VeiculoMapa[]>([]);
   readonly trajetos = input<readonly TrajetoRota[]>([]);
+  /** Quando informado, a câmera acompanha esse ônibus a cada atualização. */
+  readonly seguirId = input<number | null>(null);
   /** A tela cheia abre o mapa mesmo antes de chegar a primeira posição. */
   readonly iniciarVazio = input(false);
   /** No painel o mapa só mostra a frota. Arrastar e ampliar ficam na tela cheia. */
@@ -36,6 +38,7 @@ export class MapaOperacional implements OnDestroy {
     effect(() => {
       this.veiculos();
       this.trajetos();
+      this.seguirId();
       this.fichasAbertas();
       this.desenhar();
     });
@@ -59,28 +62,38 @@ export class MapaOperacional implements OnDestroy {
     const assinatura = veiculos
       .map((veiculo) => `${veiculo.id}:${veiculo.latitude}:${veiculo.longitude}:${veiculo.atualizadoEm}:${abertas.has(veiculo.id)}`)
       .join('|');
-    if (assinatura === this.assinatura) return;
-    this.assinatura = assinatura;
+    if (assinatura !== this.assinatura) {
+      this.assinatura = assinatura;
+      this.camada.clearLayers();
+      for (const veiculo of veiculos) {
+        const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
+          interactive: this.interativo(),
+          icon: L.divIcon({
+            className: '',
+            html: '<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#14624c;border:2px solid white;box-shadow:0 0 0 1px #14624c"></span>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          }),
+        });
+        marcador.bindTooltip(fichaDoVeiculo(veiculo, abertas.has(veiculo.id)), {
+          direction: 'top',
+          permanent: true,
+          opacity: 1,
+          interactive: this.interativo(),
+          className: 'ficha-balao',
+        });
+        marcador.addTo(this.camada);
+      }
+    }
 
-    this.camada.clearLayers();
-    for (const veiculo of veiculos) {
-      const marcador = L.marker([veiculo.latitude, veiculo.longitude], {
-        interactive: this.interativo(),
-        icon: L.divIcon({
-          className: '',
-          html: '<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#14624c;border:2px solid white;box-shadow:0 0 0 1px #14624c"></span>',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        }),
-      });
-      marcador.bindTooltip(fichaDoVeiculo(veiculo, abertas.has(veiculo.id)), {
-        direction: 'top',
-        permanent: true,
-        opacity: 1,
-        interactive: this.interativo(),
-        className: 'ficha-balao',
-      });
-      marcador.addTo(this.camada);
+    const seguir = this.seguirId();
+    if (seguir !== null) {
+      const alvo = veiculos.find((veiculo) => veiculo.id === seguir);
+      if (alvo) {
+        mapa.panTo([alvo.latitude, alvo.longitude], { animate: true });
+        this.enquadrou = true;
+        return;
+      }
     }
 
     if (this.trajetos().length > 0 || veiculos.length === 0 || this.enquadrou) return;
@@ -110,6 +123,7 @@ export class MapaOperacional implements OnDestroy {
       coordenadas.push(...tracado(this.camadaRota, trajeto.linhaVolta ?? [], COR_VOLTA, DESLOCAMENTO_VOLTA_M));
     }
     if (coordenadas.length === 0) return;
+    if (this.seguirId() !== null) return;
     mapa.fitBounds(L.latLngBounds(coordenadas), { padding: [48, 48], maxZoom: 15 });
     this.enquadrou = true;
   }

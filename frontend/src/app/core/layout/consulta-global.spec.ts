@@ -1,4 +1,4 @@
-import { consultarRegistros, type FontesConsulta } from './consulta-global';
+import { consultarFuncionalidades, consultarRegistros, type FontesConsulta } from './consulta-global';
 
 const fontes: FontesConsulta = {
   onibus: [{ id: 1, placa: 'ABC1D23', modelo: 'Torino', ano: 2020, capacidade: 40 }],
@@ -43,5 +43,23 @@ describe('consultarRegistros', () => {
     expect(consultarRegistros(fontes, 'a', true)).toEqual([]);
     expect(consultarRegistros(fontes, 'ana', false).map((item) => item.recurso)).toEqual(['Pessoa']);
     expect(consultarRegistros(fontes, 'ana', true).map((item) => item.recurso)).toEqual(['Pessoa', 'Usuário']);
+  });
+});
+
+describe('consultarFuncionalidades', () => {
+  it('encontra telas do sistema por nome ou sinônimo', () => {
+    expect(consultarFuncionalidades('mapa', 'ADMINISTRADOR')[0]).toMatchObject({
+      recurso: 'Funcionalidade',
+      titulo: 'Mapa da frota',
+      caminho: '/mapa',
+    });
+    expect(consultarFuncionalidades('rotas', 'ESTUDANTE').some((item) => item.caminho === '/rotas')).toBe(true);
+  });
+
+  it('respeita perfil nas funcionalidades restritas', () => {
+    expect(consultarFuncionalidades('transmitir', 'ESTUDANTE')).toEqual([]);
+    expect(consultarFuncionalidades('transmitir', 'MOTORISTA')[0]?.caminho).toBe('/transmitir');
+    expect(consultarFuncionalidades('usuarios', 'MOTORISTA')).toEqual([]);
+    expect(consultarFuncionalidades('usuarios', 'ADMINISTRADOR')[0]?.caminho).toBe('/usuarios');
   });
 });

@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, effect, ElementRef, inject, input, OnDestroy, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, OnDestroy, signal, viewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import * as L from 'leaflet';
 import { ApiService } from '../../../core/api/api.service';
@@ -9,7 +9,6 @@ import { COR_IDA, COR_VOLTA, DESLOCAMENTO_VOLTA_M, deslocarPontos, type PontoNoM
 
 const LIMITE = 20;
 type Sentido = 'IDA' | 'VOLTA';
-type TipoPonto = 'PARADA' | 'PASSAGEM';
 
 interface LinhaApi {
   linha: PontoNoMapa[];
@@ -33,7 +32,6 @@ export class ParadasCampo implements OnDestroy {
   protected readonly corVolta = COR_VOLTA;
   protected readonly paradas = signal<ParadaRota[]>([]);
   protected readonly sentido = signal<Sentido>('IDA');
-  protected readonly tipo = signal<TipoPonto>('PARADA');
   protected readonly expandido = signal(false);
   protected readonly menuAberto = signal(true);
   protected readonly consulta = signal('');
@@ -46,16 +44,10 @@ export class ParadasCampo implements OnDestroy {
   protected readonly ida = computed(() => this.paradas().filter((parada) => sentidoDe(parada) === 'IDA'));
   protected readonly volta = computed(() => this.paradas().filter((parada) => sentidoDe(parada) === 'VOLTA'));
   protected readonly resumo = computed(() => {
-    const ida = this.ida();
-    const volta = this.volta();
-    const textoIda =
-      ida.length === 0
-        ? 'Nenhum ponto na ida'
-        : `${ida.length} na ida (${ida.filter((p) => tipoDe(p) === 'PARADA').length} parada(s))`;
-    const textoVolta =
-      volta.length === 0
-        ? 'volta espelhada'
-        : `${volta.length} na volta (${volta.filter((p) => tipoDe(p) === 'PARADA').length} parada(s))`;
+    const ida = this.ida().length;
+    const volta = this.volta().length;
+    const textoIda = ida === 0 ? 'Nenhuma via na ida' : `${ida} via(s) na ida`;
+    const textoVolta = volta === 0 ? 'volta espelhada' : `${volta} via(s) na volta`;
     return `${textoIda} · ${textoVolta}`;
   });
 
@@ -131,10 +123,6 @@ export class ParadasCampo implements OnDestroy {
     this.sentido.set(sentido);
   }
 
-  protected escolherTipo(tipo: TipoPonto): void {
-    this.tipo.set(tipo);
-  }
-
   protected async localizar(): Promise<void> {
     const texto = this.consulta().trim();
     if (!texto || this.controle().disabled) return;
@@ -158,7 +146,7 @@ export class ParadasCampo implements OnDestroy {
     const sentido = this.sentido();
     const doSentido = this.paradas().filter((parada) => sentidoDe(parada) === sentido);
     if (doSentido.length >= LIMITE) {
-      this.aviso.set(`O limite é ${LIMITE} pontos na ${sentido === 'IDA' ? 'ida' : 'volta'}.`);
+      this.aviso.set(`O limite é ${LIMITE} vias na ${sentido === 'IDA' ? 'ida' : 'volta'}.`);
       return;
     }
     const lista = [
@@ -168,7 +156,7 @@ export class ParadasCampo implements OnDestroy {
         latitude: ponto.latitude,
         longitude: ponto.longitude,
         sentido,
-        tipo: this.tipo(),
+        tipo: 'PASSAGEM' as const,
       },
     ];
     this.definir(lista);
@@ -221,10 +209,6 @@ export class ParadasCampo implements OnDestroy {
         return visto !== indice;
       }),
     );
-  }
-
-  protected rotuloTipo(parada: ParadaRota): string {
-    return tipoDe(parada) === 'PASSAGEM' ? 'Passagem' : 'Parada';
   }
 
   private definir(lista: ParadaRota[]): void {
@@ -303,8 +287,7 @@ export class ParadasCampo implements OnDestroy {
       this.adicionar({ ...ponto, latitude, longitude }, false);
     } catch (falha) {
       const doSentido = this.sentido() === 'IDA' ? this.ida().length : this.volta().length;
-      const prefixo = this.tipo() === 'PASSAGEM' ? 'Passagem' : 'Parada';
-      this.adicionar({ nome: `${prefixo} ${doSentido + 1}`, latitude, longitude }, false);
+      this.adicionar({ nome: `Via ${doSentido + 1}`, latitude, longitude }, false);
       this.aviso.set(paraErroApi(falha).mensagens.join(' '));
     } finally {
       this.marcando.set(false);
@@ -351,32 +334,22 @@ function desenharMarcadores(
   rotulo: string,
 ): void {
   pontos.forEach((parada, indice) => {
-    const passagem = tipoDe(parada) === 'PASSAGEM';
     const marcador = L.marker([parada.latitude, parada.longitude], {
       icon: L.divIcon({
         className: '',
-        html: passagem
-          ? `<span style="display:flex;width:16px;height:16px;align-items:center;justify-content:center;border-radius:9999px;background:white;color:${cor};border:2px solid ${cor};font-size:9px;font-weight:700">${indice + 1}</span>`
-          : `<span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:9999px;background:${cor};color:white;border:2px solid white;font-size:11px;font-weight:700">${indice + 1}</span>`,
-        iconSize: passagem ? [16, 16] : [22, 22],
-        iconAnchor: rotulo === 'Volta' ? (passagem ? [8, 0] : [11, 0]) : passagem ? [8, 16] : [11, 22],
+        html: `<span style="display:flex;width:16px;height:16px;align-items:center;justify-content:center;border-radius:9999px;background:white;color:${cor};border:2px solid ${cor};font-size:9px;font-weight:700">${indice + 1}</span>`,
+        iconSize: [16, 16],
+        iconAnchor: rotulo === 'Volta' ? [8, 0] : [8, 16],
       }),
     });
     marcador.on('click', (evento: L.LeafletMouseEvent) => L.DomEvent.stopPropagation(evento.originalEvent));
-    marcador.bindTooltip(
-      `${rotulo} · ${indice + 1}. ${parada.nome}${passagem ? ' (passagem)' : ''}`,
-      { direction: 'top' },
-    );
+    marcador.bindTooltip(`${rotulo} · ${indice + 1}. ${parada.nome}`, { direction: 'top' });
     marcador.addTo(camada);
   });
 }
 
 function sentidoDe(parada: ParadaRota): Sentido {
   return parada.sentido === 'VOLTA' ? 'VOLTA' : 'IDA';
-}
-
-function tipoDe(parada: ParadaRota): TipoPonto {
-  return parada.tipo === 'PASSAGEM' ? 'PASSAGEM' : 'PARADA';
 }
 
 function lerParadas(valor: unknown): ParadaRota[] {
@@ -393,7 +366,7 @@ function lerParadas(valor: unknown): ParadaRota[] {
         latitude,
         longitude,
         sentido: registro.sentido === 'VOLTA' ? 'VOLTA' : 'IDA',
-        tipo: registro.tipo === 'PASSAGEM' ? 'PASSAGEM' : 'PARADA',
+        tipo: registro.tipo === 'PARADA' ? 'PARADA' : 'PASSAGEM',
       },
     ];
   });

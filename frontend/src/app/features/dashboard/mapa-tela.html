@@ -53,6 +53,20 @@
       }
     </ul>
 
+    @if (podeAcompanhar()) {
+      <button
+        type="button"
+        class="w-full"
+        [class]="acompanhando() ? btnSecundario : btnPrimario"
+        [attr.aria-pressed]="acompanhando()"
+        (click)="alternarAcompanhar()"
+      >
+        {{ acompanhando() ? 'Parar de acompanhar' : 'Acompanhar no mapa' }}
+      </button>
+    } @else if (escolhido() !== null) {
+      <p class="text-xs text-slate-500">Para acompanhar, o ônibus precisa estar compartilhando a localização.</p>
+    }
+
     @if (carregandoTrajeto()) {
       <p class="text-sm text-slate-500" role="status">Desenhando a rota…</p>
     } @else if (erroTrajeto(); as mensagem) {
@@ -95,7 +109,13 @@
       [attr.aria-hidden]="menuAberto()"
     >Voltar</a>
     <div class="relative min-h-0 flex-1">
-      <app-mapa-operacional [veiculos]="veiculos()" [trajetos]="trajetos()" [iniciarVazio]="true" [interativo]="true" />
+      <app-mapa-operacional
+        [veiculos]="veiculos()"
+        [trajetos]="trajetos()"
+        [seguirId]="seguirId()"
+        [iniciarVazio]="true"
+        [interativo]="true"
+      />
       @if (trajetos().length) {
         <p class="pointer-events-none absolute bottom-3 left-3 z-[1100] flex gap-3 rounded-xl bg-papel-cartao/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-sm">
           <span class="inline-flex items-center gap-1.5"><span class="inline-block h-1.5 w-5 rounded-full bg-[#15803d]"></span> Ida</span>

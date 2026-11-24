@@ -27,7 +27,7 @@
         @if (consulta.carregando() && consulta.resultados().length === 0) {
           <p class="px-2 py-3 text-sm text-slate-500">Buscando…</p>
         } @else if (consulta.resultados().length === 0) {
-          <p class="px-2 py-3 text-sm text-slate-500">Nenhum registro encontrado.</p>
+          <p class="px-2 py-3 text-sm text-slate-500">Nenhum resultado encontrado.</p>
         } @else {
           <ul class="max-h-80 space-y-1 overflow-y-auto">
             @for (resultado of consulta.resultados(); track resultado.caminho + resultado.id) {
