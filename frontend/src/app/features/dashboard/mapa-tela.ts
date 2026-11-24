@@ -1,10 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { interval } from 'rxjs';
+import { filter, interval } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { paraErroApi } from '../../core/api/erro-api';
 import type { Onibus, ParadaRota, Rota } from '../../core/models';
+import { PosicoesRealtimeService } from '../../core/realtime/posicoes-realtime.service';
 import { SearchInput } from '../../shared/components/search-input/search-input';
 import { CLASSE_BTN_PRIMARIO, CLASSE_BTN_SECUNDARIO } from '../../shared/ui';
 import { MapaOperacional } from './mapa-operacional';
@@ -17,8 +18,8 @@ import {
   type TrajetoRota,
 } from './tracado-rota';
 
-/** A tela cheia consulta com mais frequência do que o celular envia, para o ponto andar assim que a posição chega. */
-const INTERVALO_CONSULTA_MS = 2000;
+/** Fallback HTTP só quando o canal em tempo real estiver fora. */
+const INTERVALO_CONSULTA_MS = 5000;
 
 interface TrajetoApi {
   origem: TrajetoRota['origem'];
@@ -37,9 +38,12 @@ interface TrajetoApi {
 })
 export class MapaTela {
   private readonly api = inject(ApiService);
+  private readonly tempoReal = inject(PosicoesRealtimeService);
+  private readonly destruir = inject(DestroyRef);
   protected readonly btnSecundario = CLASSE_BTN_SECUNDARIO;
   protected readonly btnPrimario = CLASSE_BTN_PRIMARIO;
-  protected readonly veiculos = signal<readonly VeiculoMapa[]>([]);
+  private readonly posicoes = signal<readonly PosicaoFrota[]>([]);
+  protected readonly veiculos = computed(() => paraVeiculos(this.posicoes()));
   protected readonly erro = signal<string | null>(null);
   protected readonly consultado = signal(false);
   protected readonly termo = signal('');
@@ -61,9 +65,43 @@ export class MapaTela {
   constructor() {
     void this.carregarFrota();
     void this.atualizar();
+    this.ligarTempoReal();
     interval(INTERVALO_CONSULTA_MS)
-      .pipe(takeUntilDestroyed())
+      .pipe(
+        filter(() => !this.tempoReal.conectado()),
+        takeUntilDestroyed(),
+      )
       .subscribe(() => void this.atualizar());
+  }
+
+  private ligarTempoReal(): void {
+    this.tempoReal.conectar();
+    const limparSnapshot = this.tempoReal.aoSnapshot((lista) => this.aplicarPosicoes(lista));
+    const limparAtualizacao = this.tempoReal.aoAtualizar((posicao) => {
+      this.aplicarPosicoes([
+        ...this.posicoes().filter((item) => item.onibusId !== posicao.onibusId),
+        posicao,
+      ]);
+    });
+    const limparRemocao = this.tempoReal.aoRemover((onibusId) => {
+      this.aplicarPosicoes(this.posicoes().filter((item) => item.onibusId !== onibusId));
+    });
+    this.destruir.onDestroy(() => {
+      limparSnapshot();
+      limparAtualizacao();
+      limparRemocao();
+    });
+  }
+
+  private aplicarPosicoes(lista: readonly PosicaoFrota[]): void {
+    this.posicoes.set(lista);
+    const veiculos = paraVeiculos(lista);
+    const seguido = this.escolhido();
+    if (this.acompanhando() && (seguido === null || !veiculos.some((veiculo) => veiculo.id === seguido))) {
+      this.acompanhando.set(false);
+    }
+    this.erro.set(null);
+    this.consultado.set(true);
   }
 
   protected alternarMenu(): void {
@@ -173,16 +211,9 @@ export class MapaTela {
   private async atualizar(): Promise<void> {
     try {
       const lista = await this.api.get<PosicaoFrota[]>('/posicoes');
-      const veiculos = paraVeiculos(lista);
-      this.veiculos.set(veiculos);
-      const seguido = this.escolhido();
-      if (this.acompanhando() && (seguido === null || !veiculos.some((veiculo) => veiculo.id === seguido))) {
-        this.acompanhando.set(false);
-      }
-      this.erro.set(null);
+      this.aplicarPosicoes(lista);
     } catch (falha) {
       this.erro.set(paraErroApi(falha).mensagens.join(' '));
-    } finally {
       this.consultado.set(true);
     }
   }

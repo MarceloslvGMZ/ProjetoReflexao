@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
+import { PosicoesRealtimeService } from '../../core/realtime/posicoes-realtime.service';
 import { Transmitir } from './transmitir';
 
 const onibus = [{ id: 3, placa: 'ABC1D23', modelo: 'Torino', ano: 2020, capacidade: 44 }];
@@ -11,9 +12,19 @@ describe('Transmitir', () => {
   let http: HttpTestingController;
   let elemento: HTMLElement;
   let clearWatch: ReturnType<typeof vi.fn>;
+  let tempoReal: {
+    conectar: ReturnType<typeof vi.fn>;
+    enviarPosicao: ReturnType<typeof vi.fn>;
+    encerrarPosicao: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     clearWatch = vi.fn();
+    tempoReal = {
+      conectar: vi.fn(),
+      enviarPosicao: vi.fn().mockResolvedValue(false),
+      encerrarPosicao: vi.fn().mockResolvedValue(false),
+    };
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
@@ -26,14 +37,21 @@ describe('Transmitir', () => {
     });
 
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: PosicoesRealtimeService, useValue: tempoReal },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(Transmitir);
     elemento = fixture.nativeElement as HTMLElement;
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    TestBed.resetTestingModule();
+  });
 
   async function carregarOnibus(): Promise<void> {
     (await vi.waitFor(() => http.expectOne(`${environment.apiUrl}/onibus`))).flush(onibus);
@@ -52,7 +70,9 @@ describe('Transmitir', () => {
     await vi.waitFor(() => expect(elemento.textContent).toContain('Enviado'));
 
     fixture.destroy();
-    const fim = http.expectOne({ method: 'DELETE', url: `${environment.apiUrl}/onibus/3/posicoes` });
+    const fim = await vi.waitFor(() =>
+      http.expectOne({ method: 'DELETE', url: `${environment.apiUrl}/onibus/3/posicoes` }),
+    );
     fim.flush(null);
     expect(clearWatch).toHaveBeenCalledWith(4);
   });

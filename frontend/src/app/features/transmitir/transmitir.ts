@@ -2,9 +2,10 @@ import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api/api.service';
 import { paraErroApi } from '../../core/api/erro-api';
+import { PosicoesRealtimeService } from '../../core/realtime/posicoes-realtime.service';
 import type { Onibus } from '../../core/models';
 import { PageHeader } from '../../shared/components/page-header/page-header';
-import { deveEnviarPosicao } from './envio-posicao';
+import { deveEnviarPorMovimento, deveEnviarPosicao } from './envio-posicao';
 
 interface Leitura {
   latitude: number;
@@ -18,8 +19,10 @@ interface Leitura {
 })
 export class Transmitir implements OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly tempoReal = inject(PosicoesRealtimeService);
   private relogio: number | null = null;
   private ultimoEnvio: number | null = null;
+  private ultimaEnviada: Leitura | null = null;
 
   protected readonly onibus = signal<Onibus[]>([]);
   protected readonly onibusId = signal<number | null>(null);
@@ -30,6 +33,7 @@ export class Transmitir implements OnDestroy {
   protected readonly envio = signal<'aguardando' | 'enviado' | 'falhou'>('aguardando');
 
   constructor() {
+    this.tempoReal.conectar();
     void this.carregar();
   }
 
@@ -59,6 +63,7 @@ export class Transmitir implements OnDestroy {
 
     this.erro.set(null);
     this.envio.set('aguardando');
+    this.tempoReal.conectar();
     this.relogio = navigator.geolocation.watchPosition(
       (posicao) => void this.receber(id, posicao.coords.latitude, posicao.coords.longitude),
       (falha) => {
@@ -76,26 +81,35 @@ export class Transmitir implements OnDestroy {
     if (this.relogio !== null) navigator.geolocation.clearWatch(this.relogio);
     this.relogio = null;
     this.ultimoEnvio = null;
+    this.ultimaEnviada = null;
     this.compartilhando.set(false);
     if (estavaCompartilhando && id !== null) void this.retirarDoMapa(id);
   }
 
   private async retirarDoMapa(onibusId: number): Promise<void> {
     try {
-      await this.api.enviar('DELETE', `/onibus/${onibusId}/posicoes`);
+      const viaWs = await this.tempoReal.encerrarPosicao(onibusId);
+      if (!viaWs) await this.api.enviar('DELETE', `/onibus/${onibusId}/posicoes`);
     } catch (erro) {
       this.erro.set(paraErroApi(erro).mensagens.join(' '));
     }
   }
 
   private async receber(onibusId: number, latitude: number, longitude: number): Promise<void> {
-    this.leitura.set({ latitude, longitude });
+    const atual = { latitude, longitude };
+    this.leitura.set(atual);
     const agora = Date.now();
-    if (!deveEnviarPosicao(this.ultimoEnvio, agora)) return;
+    const porTempo = deveEnviarPosicao(this.ultimoEnvio, agora);
+    const porMovimento = deveEnviarPorMovimento(this.ultimaEnviada, atual);
+    if (!porTempo && !porMovimento) return;
 
     this.ultimoEnvio = agora;
+    this.ultimaEnviada = atual;
     try {
-      await this.api.enviar('POST', `/onibus/${onibusId}/posicoes`, { latitude, longitude });
+      const viaWs = await this.tempoReal.enviarPosicao(onibusId, latitude, longitude);
+      if (!viaWs) {
+        await this.api.enviar('POST', `/onibus/${onibusId}/posicoes`, { latitude, longitude });
+      }
       this.envio.set('enviado');
       this.erro.set(null);
     } catch (erro) {

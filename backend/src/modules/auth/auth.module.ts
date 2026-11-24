@@ -28,5 +28,6 @@ import { LoginUseCase } from './use-cases/login.use-case.js';
     { provide: TokenService, useClass: JwtTokenService },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
+  exports: [TokenService, JwtModule],
 })
 export class AuthModule {}

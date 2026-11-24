@@ -50,4 +50,9 @@ export class ListarPosicoesUseCase {
       ];
     });
   }
+
+  async porOnibus(onibusId: number, agora = new Date()): Promise<PosicaoDaFrota | null> {
+    const lista = await this.executar(agora);
+    return lista.find((posicao) => posicao.onibusId === onibusId) ?? null;
+  }
 }
